@@ -64,7 +64,9 @@ pub fn validate_tool(t: &ToolSpec) -> crate::Result<()> {
     // Validate that input_schema parses as an object (top-level JSON schema
     // is always an object).
     if !t.input_schema.is_object() {
-        return Err(crate::Error::Mcp("tool input_schema must be a JSON object".into()));
+        return Err(crate::Error::Mcp(
+            "tool input_schema must be a JSON object".into(),
+        ));
     }
     Ok(())
 }
@@ -85,7 +87,8 @@ impl ToolRegistry {
     /// (server, name) key.
     pub fn register(&mut self, tool: ToolSpec) -> crate::Result<()> {
         validate_tool(&tool)?;
-        self.tools.insert((tool.server.clone(), tool.name.clone()), tool);
+        self.tools
+            .insert((tool.server.clone(), tool.name.clone()), tool);
         Ok(())
     }
 

@@ -59,17 +59,15 @@ pub enum Dispatch {
 /// because the schema vocabulary is open-ended and pulling in a JSON-Schema
 /// validator would bloat the wasm bundle by ~200 KB. Per ADR-002a's size
 /// budget, that's not worth it.
-pub fn dispatch(
-    request: &ToolCallRequest,
-    registry: &ToolRegistry,
-    now_unix: i64,
-) -> Dispatch {
+pub fn dispatch(request: &ToolCallRequest, registry: &ToolRegistry, now_unix: i64) -> Dispatch {
     let spec = match registry.get(&request.server, &request.tool) {
         Some(s) => s.clone(),
-        None => return Dispatch::NotFound {
-            server: request.server.clone(),
-            tool: request.tool.clone(),
-        },
+        None => {
+            return Dispatch::NotFound {
+                server: request.server.clone(),
+                tool: request.tool.clone(),
+            }
+        }
     };
 
     if !request.args.is_object() {
@@ -80,7 +78,12 @@ pub fn dispatch(
 
     // Capability convention: tool.invoke.<server>.<tool>
     let capability = format!("tool.invoke.{}.{}", request.server, request.tool);
-    match claims::check(&request.claims, &capability, request.resource.as_deref(), now_unix) {
+    match claims::check(
+        &request.claims,
+        &capability,
+        request.resource.as_deref(),
+        now_unix,
+    ) {
         AuthDecision::Allowed => Dispatch::Invoke {
             spec,
             normalized_args: request.args.clone(),
@@ -94,15 +97,22 @@ pub fn dispatch(
 pub fn dispatch_unauthenticated(request: &ToolCallRequest, registry: &ToolRegistry) -> Dispatch {
     let spec = match registry.get(&request.server, &request.tool) {
         Some(s) => s.clone(),
-        None => return Dispatch::NotFound {
-            server: request.server.clone(),
-            tool: request.tool.clone(),
-        },
+        None => {
+            return Dispatch::NotFound {
+                server: request.server.clone(),
+                tool: request.tool.clone(),
+            }
+        }
     };
     if !request.args.is_object() {
-        return Dispatch::BadArgs { reason: "args must be a JSON object".into() };
+        return Dispatch::BadArgs {
+            reason: "args must be a JSON object".into(),
+        };
     }
-    Dispatch::Invoke { spec, normalized_args: request.args.clone() }
+    Dispatch::Invoke {
+        spec,
+        normalized_args: request.args.clone(),
+    }
 }
 
 #[cfg(test)]
@@ -110,7 +120,9 @@ mod tests {
     use super::*;
     use crate::mcp::ToolSpec;
 
-    fn now() -> i64 { 1_700_000_000 }
+    fn now() -> i64 {
+        1_700_000_000
+    }
 
     fn registry_with(tools: Vec<ToolSpec>) -> ToolRegistry {
         let mut r = ToolRegistry::new();
@@ -175,7 +187,10 @@ mod tests {
             claims: vec![allow_claim("*")],
             resource: None,
         };
-        assert!(matches!(dispatch(&req, &r, now()), Dispatch::NotFound { .. }));
+        assert!(matches!(
+            dispatch(&req, &r, now()),
+            Dispatch::NotFound { .. }
+        ));
     }
 
     #[test]

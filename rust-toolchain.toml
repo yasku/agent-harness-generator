@@ -1,4 +1,7 @@
 [toolchain]
-channel = "1.83.0"
+# 1.88.0 — needed for wasm-tools 1.252.0+ (requires 1.85+) and current
+# wasm-pack (whose time-core transitive dep now uses newer manifest fields).
+# Earlier we pinned 1.83.0 (Nov 2024) which broke the WASM CI matrix.
+channel = "1.88.0"
 components = ["rustfmt", "clippy"]
 targets = ["wasm32-unknown-unknown"]

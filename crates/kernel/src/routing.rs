@@ -59,17 +59,40 @@ pub struct RoutingDecision {
 
 /// Keyword sets that bump a task toward Frontier or pin it to Codemod.
 const CODEMOD_KEYWORDS: &[&str] = &[
-    "var to const", "var-to-const", "remove console", "remove-console",
-    "add logging", "add-logging", "rename to", "kebab case", "snake case",
-    "format code", "prettier", "lint fix",
+    "var to const",
+    "var-to-const",
+    "remove console",
+    "remove-console",
+    "add logging",
+    "add-logging",
+    "rename to",
+    "kebab case",
+    "snake case",
+    "format code",
+    "prettier",
+    "lint fix",
 ];
 
 const FRONTIER_KEYWORDS: &[&str] = &[
-    "architecture", "design", "security", "audit", "threat model",
-    "review the entire", "refactor across", "migration plan",
-    "data model", "schema design", "trade-off", "evaluate options",
-    "compare approaches", "incident", "regression", "race condition",
-    "deadlock", "memory leak", "cve",
+    "architecture",
+    "design",
+    "security",
+    "audit",
+    "threat model",
+    "review the entire",
+    "refactor across",
+    "migration plan",
+    "data model",
+    "schema design",
+    "trade-off",
+    "evaluate options",
+    "compare approaches",
+    "incident",
+    "regression",
+    "race condition",
+    "deadlock",
+    "memory leak",
+    "cve",
 ];
 
 /// Heuristic token estimate when the caller didn't supply one.

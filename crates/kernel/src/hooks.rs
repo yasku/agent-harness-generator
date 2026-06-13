@@ -39,10 +39,7 @@ impl HookEvent {
     /// Is this a destructive-action event (tool use)? Determines the
     /// default decision when every handler defers.
     pub fn is_destructive(self) -> bool {
-        matches!(
-            self,
-            HookEvent::PreToolUse | HookEvent::SubagentStart
-        )
+        matches!(self, HookEvent::PreToolUse | HookEvent::SubagentStart)
     }
 }
 
@@ -139,7 +136,9 @@ fn glob_match(pat: &str, s: &str) -> bool {
     if let Some(star) = pat.find('*') {
         let prefix = &pat[..star];
         let suffix = &pat[star + 1..];
-        return s.starts_with(prefix) && s.ends_with(suffix) && s.len() >= prefix.len() + suffix.len();
+        return s.starts_with(prefix)
+            && s.ends_with(suffix)
+            && s.len() >= prefix.len() + suffix.len();
     }
     pat == s
 }
@@ -163,7 +162,10 @@ pub fn merge_decisions(decisions: &[PermissionDecision], event: HookEvent) -> Pe
 /// Filter a list of handlers down to those whose matcher applies to the
 /// given input.
 pub fn applicable_handlers<'a>(handlers: &'a [HandlerSpec], input: &str) -> Vec<&'a HandlerSpec> {
-    handlers.iter().filter(|h| matcher_matches(h.matcher.as_deref(), input)).collect()
+    handlers
+        .iter()
+        .filter(|h| matcher_matches(h.matcher.as_deref(), input))
+        .collect()
 }
 
 #[cfg(test)]
@@ -184,12 +186,18 @@ mod tests {
 
     #[test]
     fn destructive_event_default_is_ask() {
-        assert_eq!(merge_decisions(&[], HookEvent::PreToolUse), PermissionDecision::Ask);
+        assert_eq!(
+            merge_decisions(&[], HookEvent::PreToolUse),
+            PermissionDecision::Ask
+        );
     }
 
     #[test]
     fn non_destructive_event_default_is_allow() {
-        assert_eq!(merge_decisions(&[], HookEvent::SessionStart), PermissionDecision::Allow);
+        assert_eq!(
+            merge_decisions(&[], HookEvent::SessionStart),
+            PermissionDecision::Allow
+        );
     }
 
     #[test]
@@ -234,9 +242,21 @@ mod tests {
     #[test]
     fn applicable_filters_correctly() {
         let handlers = vec![
-            HandlerSpec { kind: HandlerKind::Command, matcher: Some("Bash(*)".into()), payload: "log.sh".into() },
-            HandlerSpec { kind: HandlerKind::Command, matcher: Some("Edit".into()), payload: "track.sh".into() },
-            HandlerSpec { kind: HandlerKind::Command, matcher: None, payload: "always.sh".into() },
+            HandlerSpec {
+                kind: HandlerKind::Command,
+                matcher: Some("Bash(*)".into()),
+                payload: "log.sh".into(),
+            },
+            HandlerSpec {
+                kind: HandlerKind::Command,
+                matcher: Some("Edit".into()),
+                payload: "track.sh".into(),
+            },
+            HandlerSpec {
+                kind: HandlerKind::Command,
+                matcher: None,
+                payload: "always.sh".into(),
+            },
         ];
         let app = applicable_handlers(&handlers, "Bash(echo hi)");
         assert_eq!(app.len(), 2); // Bash(*) and the None-matcher

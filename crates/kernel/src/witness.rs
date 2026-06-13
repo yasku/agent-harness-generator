@@ -59,7 +59,11 @@ pub struct WitnessManifest {
 ///
 /// The output bytes are exactly what gets signed. Use the same function
 /// for verify.
-pub fn canonical_payload(harness: &str, version: &str, entries: &[WitnessEntry]) -> crate::Result<Vec<u8>> {
+pub fn canonical_payload(
+    harness: &str,
+    version: &str,
+    entries: &[WitnessEntry],
+) -> crate::Result<Vec<u8>> {
     let mut sorted = entries.to_vec();
     sorted.sort_by(|a, b| a.id.cmp(&b.id));
     #[derive(Serialize)]
@@ -182,22 +186,37 @@ mod tests {
     fn entries_are_sorted_for_determinism() {
         let key = test_key();
         let entries_unsorted = vec![
-            WitnessEntry { id: "z".into(), desc: "z".into(), marker: "z".into(), sha256: "0".repeat(64) },
-            WitnessEntry { id: "a".into(), desc: "a".into(), marker: "a".into(), sha256: "0".repeat(64) },
+            WitnessEntry {
+                id: "z".into(),
+                desc: "z".into(),
+                marker: "z".into(),
+                sha256: "0".repeat(64),
+            },
+            WitnessEntry {
+                id: "a".into(),
+                desc: "a".into(),
+                marker: "a".into(),
+                sha256: "0".repeat(64),
+            },
         ];
         let m1 = sign_manifest(&key, "h", "1.0.0", entries_unsorted.clone()).unwrap();
         let mut entries_sorted = entries_unsorted;
         entries_sorted.sort_by(|a, b| a.id.cmp(&b.id));
         let m2 = sign_manifest(&key, "h", "1.0.0", entries_sorted).unwrap();
-        assert_eq!(m1.signature, m2.signature,
-            "signature must be invariant to input entry order");
+        assert_eq!(
+            m1.signature, m2.signature,
+            "signature must be invariant to input entry order"
+        );
     }
 
     #[test]
     fn tampering_with_an_entry_invalidates() {
         let key = test_key();
         let entries = vec![WitnessEntry {
-            id: "a".into(), desc: "a".into(), marker: "a".into(), sha256: "0".repeat(64),
+            id: "a".into(),
+            desc: "a".into(),
+            marker: "a".into(),
+            sha256: "0".repeat(64),
         }];
         let mut m = sign_manifest(&key, "h", "1.0.0", entries).unwrap();
         m.entries[0].desc = "tampered".into();
@@ -208,7 +227,10 @@ mod tests {
     fn tampering_with_the_version_invalidates() {
         let key = test_key();
         let entries = vec![WitnessEntry {
-            id: "a".into(), desc: "a".into(), marker: "a".into(), sha256: "0".repeat(64),
+            id: "a".into(),
+            desc: "a".into(),
+            marker: "a".into(),
+            sha256: "0".repeat(64),
         }];
         let mut m = sign_manifest(&key, "h", "1.0.0", entries).unwrap();
         m.version = "1.0.1".into();

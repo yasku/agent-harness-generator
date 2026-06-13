@@ -96,7 +96,10 @@ impl PeerRegistry {
     }
 
     pub fn list_trusted(&self) -> Vec<&Peer> {
-        self.peers.values().filter(|p| p.trust != TrustTier::Untrusted).collect()
+        self.peers
+            .values()
+            .filter(|p| p.trust != TrustTier::Untrusted)
+            .collect()
     }
 
     pub fn len(&self) -> usize {
@@ -123,17 +126,21 @@ pub fn admit_message(
     capability: &str,
 ) -> AdmitDecision {
     if matches!(sender_trust, TrustTier::SelfPeer) {
-        return AdmitDecision::Admit { reason: "self peer".into() };
+        return AdmitDecision::Admit {
+            reason: "self peer".into(),
+        };
     }
     let is_read_only = is_read_only_capability(capability);
     if matches!(sender_trust, TrustTier::Trusted) && is_read_only {
-        return AdmitDecision::Admit { reason: "trusted read-only".into() };
+        return AdmitDecision::Admit {
+            reason: "trusted read-only".into(),
+        };
     }
     match claims_decision {
-        Some(crate::claims::AuthDecision::Allowed) =>
-            AdmitDecision::Admit { reason: "claim allowed".into() },
-        Some(crate::claims::AuthDecision::Denied { reason }) =>
-            AdmitDecision::Reject { reason },
+        Some(crate::claims::AuthDecision::Allowed) => AdmitDecision::Admit {
+            reason: "claim allowed".into(),
+        },
+        Some(crate::claims::AuthDecision::Denied { reason }) => AdmitDecision::Reject { reason },
         None => AdmitDecision::Reject {
             reason: "no claim supplied; sender not trusted".into(),
         },
@@ -147,11 +154,15 @@ pub enum AdmitDecision {
 }
 
 fn is_read_only_capability(cap: &str) -> bool {
-    matches!(cap,
-        "memory.read" | "memory.search"
-        | "peer.info" | "peer.ping"
-        | "tool.list" | "registry.list"
-        | "*"
+    matches!(
+        cap,
+        "memory.read"
+            | "memory.search"
+            | "peer.info"
+            | "peer.ping"
+            | "tool.list"
+            | "registry.list"
+            | "*"
     ) || cap.ends_with(".read")
         || cap.ends_with(".list")
         || cap.ends_with(".search")
@@ -241,7 +252,9 @@ mod tests {
     fn reject_with_denied_claim() {
         let d = admit_message(
             TrustTier::Untrusted,
-            Some(crate::claims::AuthDecision::Denied { reason: "expired".into() }),
+            Some(crate::claims::AuthDecision::Denied {
+                reason: "expired".into(),
+            }),
             "memory.read",
         );
         assert!(matches!(d, AdmitDecision::Reject { reason } if reason == "expired"));

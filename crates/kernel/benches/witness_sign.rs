@@ -8,12 +8,14 @@ use ed25519_dalek::SigningKey;
 use ruflo_kernel::witness::{sign_manifest, verify_manifest, WitnessEntry};
 
 fn make_entries(n: usize) -> Vec<WitnessEntry> {
-    (0..n).map(|i| WitnessEntry {
-        id: format!("fix-{i:04}"),
-        desc: format!("Entry {i} description"),
-        marker: format!("src/file_{i}.rs"),
-        sha256: format!("{:0>64}", i),
-    }).collect()
+    (0..n)
+        .map(|i| WitnessEntry {
+            id: format!("fix-{i:04}"),
+            desc: format!("Entry {i} description"),
+            marker: format!("src/file_{i}.rs"),
+            sha256: format!("{i:0>64}"),
+        })
+        .collect()
 }
 
 fn bench_sign_small(c: &mut Criterion) {

@@ -57,12 +57,16 @@ impl CostTotals {
     }
 
     pub fn success_rate(&self) -> f64 {
-        if self.call_count == 0 { return 0.0; }
+        if self.call_count == 0 {
+            return 0.0;
+        }
         self.success_count as f64 / self.call_count as f64
     }
 
     pub fn avg_cost(&self) -> f64 {
-        if self.call_count == 0 { return 0.0; }
+        if self.call_count == 0 {
+            return 0.0;
+        }
         self.total_usd / self.call_count as f64
     }
 }
@@ -71,7 +75,11 @@ impl CostTotals {
 /// budget when over.
 pub fn check_budget(totals: &CostTotals, budget_usd: f64) -> Result<f64, f64> {
     let remaining = budget_usd - totals.total_usd;
-    if remaining >= 0.0 { Ok(remaining) } else { Err(remaining) }
+    if remaining >= 0.0 {
+        Ok(remaining)
+    } else {
+        Err(remaining)
+    }
 }
 
 #[cfg(test)]
@@ -79,7 +87,13 @@ mod tests {
     use super::*;
 
     fn ev(tier: Tier, usd: f64, success: bool) -> CostEvent {
-        CostEvent { tier, cost_usd: usd, latency_ms: 100, success, timestamp: 0 }
+        CostEvent {
+            tier,
+            cost_usd: usd,
+            latency_ms: 100,
+            success,
+            timestamp: 0,
+        }
     }
 
     #[test]

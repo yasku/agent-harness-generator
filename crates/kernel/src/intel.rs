@@ -74,7 +74,8 @@ impl PipelineState {
         if matches!(step.outcome, PhaseOutcome::Fail { .. }) {
             self.aborted = true;
         }
-        if step.phase == Phase::Consolidate && matches!(step.outcome, PhaseOutcome::Success { .. }) {
+        if step.phase == Phase::Consolidate && matches!(step.outcome, PhaseOutcome::Success { .. })
+        {
             self.completed = true;
         }
         self.steps.push(step);
@@ -120,12 +121,19 @@ mod tests {
     use super::*;
 
     fn step(phase: Phase, outcome: PhaseOutcome) -> TrajectoryStep {
-        TrajectoryStep { phase, outcome, timestamp: 0 }
+        TrajectoryStep {
+            phase,
+            outcome,
+            timestamp: 0,
+        }
     }
 
     #[test]
     fn phase_serializes() {
-        assert_eq!(serde_json::to_string(&Phase::Distill).unwrap(), "\"Distill\"");
+        assert_eq!(
+            serde_json::to_string(&Phase::Distill).unwrap(),
+            "\"Distill\""
+        );
     }
 
     #[test]
@@ -137,13 +145,33 @@ mod tests {
     #[test]
     fn pipeline_advances_through_phases() {
         let mut s = PipelineState::new();
-        s.record(step(Phase::Retrieve, PhaseOutcome::Success { output: serde_json::json!(null) }));
+        s.record(step(
+            Phase::Retrieve,
+            PhaseOutcome::Success {
+                output: serde_json::json!(null),
+            },
+        ));
         assert_eq!(next_phase(&s), Some(Phase::Judge));
-        s.record(step(Phase::Judge, PhaseOutcome::Success { output: serde_json::json!(null) }));
+        s.record(step(
+            Phase::Judge,
+            PhaseOutcome::Success {
+                output: serde_json::json!(null),
+            },
+        ));
         assert_eq!(next_phase(&s), Some(Phase::Distill));
-        s.record(step(Phase::Distill, PhaseOutcome::Success { output: serde_json::json!(null) }));
+        s.record(step(
+            Phase::Distill,
+            PhaseOutcome::Success {
+                output: serde_json::json!(null),
+            },
+        ));
         assert_eq!(next_phase(&s), Some(Phase::Consolidate));
-        s.record(step(Phase::Consolidate, PhaseOutcome::Success { output: serde_json::json!(null) }));
+        s.record(step(
+            Phase::Consolidate,
+            PhaseOutcome::Success {
+                output: serde_json::json!(null),
+            },
+        ));
         assert_eq!(next_phase(&s), None);
         assert!(s.completed);
     }
@@ -151,7 +179,12 @@ mod tests {
     #[test]
     fn skip_does_not_abort() {
         let mut s = PipelineState::new();
-        s.record(step(Phase::Retrieve, PhaseOutcome::Skip { reason: "no hits".into() }));
+        s.record(step(
+            Phase::Retrieve,
+            PhaseOutcome::Skip {
+                reason: "no hits".into(),
+            },
+        ));
         assert_eq!(next_phase(&s), Some(Phase::Judge));
         assert!(!s.aborted);
     }
@@ -159,7 +192,12 @@ mod tests {
     #[test]
     fn fail_aborts_pipeline() {
         let mut s = PipelineState::new();
-        s.record(step(Phase::Retrieve, PhaseOutcome::Fail { reason: "store down".into() }));
+        s.record(step(
+            Phase::Retrieve,
+            PhaseOutcome::Fail {
+                reason: "store down".into(),
+            },
+        ));
         assert!(s.aborted);
         assert_eq!(next_phase(&s), None);
     }

@@ -46,9 +46,16 @@ pub enum AuthDecision {
 ///   - resource exact match.
 ///   - resource glob with `*`: `agents/*` matches `agents/coder`.
 ///   - expired claims (expires_at <= now_unix) are skipped.
-pub fn check(claims: &[Claim], capability: &str, resource: Option<&str>, now_unix: i64) -> AuthDecision {
+pub fn check(
+    claims: &[Claim],
+    capability: &str,
+    resource: Option<&str>,
+    now_unix: i64,
+) -> AuthDecision {
     if claims.is_empty() {
-        return AuthDecision::Denied { reason: "no claims provided".into() };
+        return AuthDecision::Denied {
+            reason: "no claims provided".into(),
+        };
     }
     for claim in claims {
         if claim.expires_at <= now_unix {
@@ -62,7 +69,9 @@ pub fn check(claims: &[Claim], capability: &str, resource: Option<&str>, now_uni
         }
         return AuthDecision::Allowed;
     }
-    AuthDecision::Denied { reason: "no matching unexpired claim".into() }
+    AuthDecision::Denied {
+        reason: "no matching unexpired claim".into(),
+    }
 }
 
 fn capability_matches(granted: &str, requested: &str) -> bool {
@@ -70,7 +79,9 @@ fn capability_matches(granted: &str, requested: &str) -> bool {
         return true;
     }
     if let Some(prefix) = granted.strip_suffix(".*") {
-        return requested.starts_with(prefix) && requested.len() > prefix.len() && requested.as_bytes()[prefix.len()] == b'.';
+        return requested.starts_with(prefix)
+            && requested.len() > prefix.len()
+            && requested.as_bytes()[prefix.len()] == b'.';
     }
     false
 }
@@ -84,7 +95,9 @@ fn resource_matches(granted: Option<&str>, requested: Option<&str>) -> bool {
                 return true;
             }
             if let Some(prefix) = g.strip_suffix("/*") {
-                return r.starts_with(prefix) && r.len() > prefix.len() && r.as_bytes()[prefix.len()] == b'/';
+                return r.starts_with(prefix)
+                    && r.len() > prefix.len()
+                    && r.as_bytes()[prefix.len()] == b'/';
             }
             false
         }
@@ -95,62 +108,98 @@ fn resource_matches(granted: Option<&str>, requested: Option<&str>) -> bool {
 mod tests {
     use super::*;
 
-    fn now() -> i64 { 1_700_000_000 }
+    fn now() -> i64 {
+        1_700_000_000
+    }
 
     fn claim(cap: &str, res: Option<&str>, ttl: i64) -> Claim {
-        Claim { capability: cap.into(), resource: res.map(String::from), expires_at: now() + ttl }
+        Claim {
+            capability: cap.into(),
+            resource: res.map(String::from),
+            expires_at: now() + ttl,
+        }
     }
 
     #[test]
     fn empty_claims_denied() {
-        assert!(matches!(check(&[], "x", None, now()), AuthDecision::Denied { .. }));
+        assert!(matches!(
+            check(&[], "x", None, now()),
+            AuthDecision::Denied { .. }
+        ));
     }
 
     #[test]
     fn exact_match_allowed() {
         let c = vec![claim("memory.read", Some("ns/x"), 1000)];
-        assert_eq!(check(&c, "memory.read", Some("ns/x"), now()), AuthDecision::Allowed);
+        assert_eq!(
+            check(&c, "memory.read", Some("ns/x"), now()),
+            AuthDecision::Allowed
+        );
     }
 
     #[test]
     fn wildcard_capability_matches_anything() {
         let c = vec![claim("*", None, 1000)];
-        assert_eq!(check(&c, "memory.write", Some("ns/y"), now()), AuthDecision::Allowed);
+        assert_eq!(
+            check(&c, "memory.write", Some("ns/y"), now()),
+            AuthDecision::Allowed
+        );
     }
 
     #[test]
     fn prefix_capability_matches() {
         let c = vec![claim("memory.*", None, 1000)];
         assert_eq!(check(&c, "memory.read", None, now()), AuthDecision::Allowed);
-        assert_eq!(check(&c, "memory.write", None, now()), AuthDecision::Allowed);
-        assert!(matches!(check(&c, "tool.invoke", None, now()), AuthDecision::Denied { .. }));
+        assert_eq!(
+            check(&c, "memory.write", None, now()),
+            AuthDecision::Allowed
+        );
+        assert!(matches!(
+            check(&c, "tool.invoke", None, now()),
+            AuthDecision::Denied { .. }
+        ));
     }
 
     #[test]
     fn prefix_capability_does_not_match_partial() {
         // "memory.*" must NOT match "memoryx" — the dot is significant.
         let c = vec![claim("memory.*", None, 1000)];
-        assert!(matches!(check(&c, "memoryx", None, now()), AuthDecision::Denied { .. }));
+        assert!(matches!(
+            check(&c, "memoryx", None, now()),
+            AuthDecision::Denied { .. }
+        ));
     }
 
     #[test]
     fn unscoped_claim_matches_any_resource() {
         let c = vec![claim("memory.read", None, 1000)];
-        assert_eq!(check(&c, "memory.read", Some("ns/x"), now()), AuthDecision::Allowed);
+        assert_eq!(
+            check(&c, "memory.read", Some("ns/x"), now()),
+            AuthDecision::Allowed
+        );
         assert_eq!(check(&c, "memory.read", None, now()), AuthDecision::Allowed);
     }
 
     #[test]
     fn scoped_claim_with_glob() {
         let c = vec![claim("memory.read", Some("agents/*"), 1000)];
-        assert_eq!(check(&c, "memory.read", Some("agents/coder"), now()), AuthDecision::Allowed);
-        assert!(matches!(check(&c, "memory.read", Some("skills/x"), now()), AuthDecision::Denied { .. }));
+        assert_eq!(
+            check(&c, "memory.read", Some("agents/coder"), now()),
+            AuthDecision::Allowed
+        );
+        assert!(matches!(
+            check(&c, "memory.read", Some("skills/x"), now()),
+            AuthDecision::Denied { .. }
+        ));
     }
 
     #[test]
     fn expired_claim_skipped() {
         let c = vec![claim("memory.read", None, -1)];
-        assert!(matches!(check(&c, "memory.read", None, now()), AuthDecision::Denied { .. }));
+        assert!(matches!(
+            check(&c, "memory.read", None, now()),
+            AuthDecision::Denied { .. }
+        ));
     }
 
     #[test]
