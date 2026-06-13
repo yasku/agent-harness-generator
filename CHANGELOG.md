@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added — Iter 52 (2026-06-13)
+
+- **`__tests__/e2e-lifecycle.test.ts`** — strongest cross-iter
+  regression net we have. Scaffolds ONE harness and runs every
+  `harness` subcommand against it in a single chain:
+  1. `scaffold()` (iter 4) → produces files + manifest
+  2. `doctor()` (iter 8) → structural sanity
+  3. `validate()` (iter 20) → 5-check umbrella (--skip-gcp)
+  4. `verify()` (iter 8) → witness signature check
+  5. `mcp ls` (iter 45) → list MCP servers
+  6. `sbom --validate-only` (iter 51) → SPDX-2.3 shape check
+  7. `audit` (iter 51) → npm audit precondition check
+  8. `upgrade` (iter 47) → drift plan (DRY-RUN, expect No drift)
+  9. `publish` (iter 46) → IPFS pin dry-run
+  10. `federate init` (iter 9) → federation state file
+- **Plus a per-host parity case** that runs scaffold + validate + sbom
+  against all 6 hosts (claude-code / codex / pi-dev / hermes /
+  openclaw / rvm) — catches host-specific regressions in the chain.
+- If ANY subcommand breaks the contract, this test fires before
+  publish. The chain mirrors what a real user does between
+  `create-agent-harness <name>` and `harness publish --confirm`.
+- TS suite: **467/467** (up from 465).
+
 ### Added — Iter 51 (2026-06-13)
 
 - **2 new `harness` subcommands** brining the binary to **12 total**,
