@@ -4,6 +4,32 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added — Iter 23 (2026-06-13)
+
+- **End-to-end integration test**
+  (`__tests__/e2e-scaffold-validate.test.ts`) — 4 cases that walk the
+  scaffolder → validate pipeline without mocks. This is the strongest
+  cross-iter regression net we have; if any of these layers breaks,
+  the test fires before publish:
+  - `minimal/claude-code scaffolds, then 'harness validate' reports
+    HEALTHY` — exercises scaffolder (iter 4), witness shape (iter 3+8),
+    path-guard (iter 16), MCP config (iter 8), validate umbrella
+    (iter 20) in one chain
+  - `scaffolds for every host without throwing` — runs the scaffolder
+    against all 6 hosts (claude-code / codex / pi-dev / hermes /
+    openclaw / rvm); the previous codex-skills test only catches
+    catalog drift, this catches actual generator regressions per-host
+  - `scaffold output passes path-guard` — pins that the SCAFFOLDER
+    itself doesn't emit hardcoded `/tmp/`, `C:\`, `/Users/` paths —
+    if it did, every user-generated harness inherits the original
+    iter-1 /tmp Windows bug
+  - `subsequent scaffold with same name and force=true is idempotent` —
+    catches non-deterministic generation (timestamps in templates,
+    Math.random etc.) that would break drift detection
+- TS suite: **306/306** (up from 302).
+- CI on iter-22 commit: WASM-windows turned green for the first time —
+  the iter-18 wasm-pack 0.13.1 + wasm-tools 1.250.0 pins worked.
+
 ### Added — Iter 22 (2026-06-13)
 
 - **2 new Codex skills** that surface iter-18 and iter-20 features to
