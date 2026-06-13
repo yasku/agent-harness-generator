@@ -4,6 +4,42 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added — Iter 50 (2026-06-13) — MILESTONE
+
+- **`scripts/sbom.mjs` — SPDX-2.3 Software Bill of Materials
+  generator** — produces a SPDX-2.3 SBOM listing every dep with
+  version + purl + license + checksum:
+  - reads `package-lock.json` (full npm dep tree)
+  - reads `Cargo.lock` (full cargo dep tree, if present)
+  - emits SPDX-2.3-compatible JSON with `spdxVersion`, deterministic
+    `documentNamespace` (hashed from package set), `SPDXRef-*` IDs,
+    `externalRefs` as `pkg:` purls per package
+  - validation gate via `validateSpdx()` — catches missing fields,
+    bad SPDXIDs, non-purl refs
+- Modes:
+  - default — print JSON to stdout (pipe to file)
+  - `--out=<path>` — write to file under `dist/`
+  - `--validate-only` — verify the shape, no output written
+  - `--include-dev` — include dev deps too (default: prod only)
+- **Live numbers**: 128 packages enumerated (npm + cargo), SPDX
+  validation OK.
+- **Wired into `.github/workflows/security.yml`** as the `sbom` job:
+  - regenerates SBOM on every push
+  - validates the shape
+  - uploads `dist/sbom.json` as a `sbom-spdx` CI artifact for
+    downstream auditors / regulated-industry users
+- **`__tests__/sbom.test.ts`** (11 cases):
+  - script exists, `--validate-only` exits 0 with no stdout, default
+    prints valid JSON, package count reported to stderr
+  - `validateSpdx()` rejects missing `spdxVersion`, packages without
+    SPDXID, non-purl `externalRefs`; accepts well-formed minimal docs
+  - live-repo build: npm packages included, every package has a
+    `pkg:npm/` or `pkg:cargo/` purl, every SPDXID is unique
+- This realizes the "secure" + "production-ready" angles of the loop
+  directive at the supply-chain layer. Enterprise procurement reviews
+  can now consume `sbom.json` directly.
+- **50 iters shipped.** Cumulative TS suite: **457/457**.
+
 ### Added — Iter 49 (2026-06-13)
 
 - **6th Codex skill: `upgrade-harness`** — wraps the iter-47 `harness

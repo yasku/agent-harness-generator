@@ -66,6 +66,28 @@ jobs:
       - name: audit-deps aggregate (fail on high+ advisories)
         run: node scripts/audit-deps.mjs --level=high
 
+  sbom:
+    # iter 50: generate an SPDX-2.3 SBOM (npm + cargo) and upload as a
+    # CI artifact for downstream auditors / regulated-industry users.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: npm install --package-lock-only
+        run: npm install --package-lock-only
+      - name: Generate SPDX SBOM
+        run: node scripts/sbom.mjs --out=dist/sbom.json
+      - name: Validate SBOM shape
+        run: node scripts/sbom.mjs --validate-only
+      - name: Upload SBOM as CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-spdx
+          path: dist/sbom.json
+          if-no-files-found: error
+
   codeql:
     runs-on: ubuntu-latest
     steps:
