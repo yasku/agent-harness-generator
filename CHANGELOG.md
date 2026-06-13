@@ -4,6 +4,33 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added — Iter 22 (2026-06-13)
+
+- **2 new Codex skills** that surface iter-18 and iter-20 features to
+  Codex installations (`.codex/skills/<name>/{skill.toml,README.md}`):
+  - **`validate-harness`** — wraps `harness validate`; runs all 5
+    release-readiness gates (doctor + verify + path-guard + mcp +
+    secrets) and reports per-check PASS/FAIL
+  - **`harness-secrets`** — wraps `harness secrets`; modes are
+    `check` (validate GCP setup), `fetch` (pipe secret value), and
+    `validate-token` (fetch NPM_TOKEN + `npm whoami` confirm)
+- **`create-harness` skill expanded to all 6 hosts** — previously the
+  `host` arg only listed `claude-code, codex, pi-dev, hermes`. Added
+  `openclaw` and `rvm` so Codex users see the full host catalog.
+- **`publish-harness` README** added (it was the only skill missing one
+  — the cross-skill test caught it).
+- **`__tests__/codex-skills.test.ts`** (6 cases) — schema validation
+  for every `.codex/skills/*/skill.toml`. Pins:
+  - ≥4 skill directories present
+  - both `skill.toml` + `README.md` per skill
+  - required fields: `[skill].name|version|description`,
+    `[dispatch].type=mcp_tool|server`, `[command].name`
+  - dir name == `[skill].name` == `[command].name`
+  - per-`[[args]]`: `name` + `prompt` present
+  - the 4 expected skills (create / publish / validate / harness-secrets)
+  - create-harness lists all 6 hosts
+- Cumulative TS suite: **302/302** (up from 296).
+
 ### Added — Iter 21 (2026-06-13)
 
 - **Wired the publish gates into `.github/workflows/publish.yml`** —
