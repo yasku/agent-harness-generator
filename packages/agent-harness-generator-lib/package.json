@@ -1,12 +1,12 @@
 {
-  "name": "mintagent",
+  "name": "@ruvnet/agent-harness-generator",
   "version": "0.1.0",
-  "description": "MintAgent — mint a custom AI agent harness from any repo. Browser Studio + `npx mintagent` CLI. Runs on Claude Code, Codex, pi.dev, Hermes, OpenClaw, RVM.",
+  "description": "Library/core package for the Agent Harness Generator. Pair with `mintagent` for the CLI. Re-exports scaffold(), validate(), and the deterministic-analysis pipeline from `mintagent` so consumers can `import { scaffold } from '@ruvnet/agent-harness-generator'` without shelling out to the CLI.",
   "homepage": "https://github.com/ruvnet/agent-harness-generator",
   "repository": {
     "type": "git",
     "url": "https://github.com/ruvnet/agent-harness-generator.git",
-    "directory": "packages/create-agent-harness"
+    "directory": "packages/agent-harness-generator-lib"
   },
   "license": "MIT",
   "author": "rUv <ruv@ruv.net>",
@@ -19,57 +19,38 @@
       "import": "./dist/index.js"
     }
   },
-  "bin": {
-    "mintagent": "./dist/bin.js",
-    "harness": "./dist/harness-bin.js"
-  },
   "files": [
     "dist/**",
-    "templates/**",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run --passWithNoTests",
-    "lint": "tsc --noEmit",
-    "gen:templates": "node scripts/gen-templates.mjs"
+    "lint": "tsc --noEmit"
   },
   "keywords": [
-    "mintagent",
     "agent-harness",
     "agent-harness-generator",
+    "mintagent",
     "scaffold",
-    "repo-to-agent",
     "mcp-server",
     "claude-code",
     "codex",
-    "pi-dev",
-    "hermes-agent",
-    "openclaw",
-    "rvm",
-    "multi-agent",
-    "agentic-ai",
-    "autonomous-agents"
+    "library"
   ],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@ruflo/kernel": "0.1.0",
-    "kolorist": "^1.8.0",
-    "prompts": "^2.4.2"
+    "mintagent": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/prompts": "^2.4.9",
     "typescript": "^5.4.0",
     "vitest": "^2.0.0"
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "optionalDependencies": {
-    "@ruvector/ruvllm": "^2.5.6"
   }
 }
