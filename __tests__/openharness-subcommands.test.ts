@@ -102,15 +102,19 @@ describe('openharness subcommand router (iter 117)', () => {
   });
 
   it('unknown first-arg verb (not a subcommand, not a flag) falls through to legacy scaffold', async () => {
-    // "my-bot" isn't a subcommand → router returns null → legacy scaffold runs.
-    // Without --template the scaffold may fail differently; we just check the
-    // router didn't intercept (no "from-repo" usage in output).
+    // "unknown-name" isn't a subcommand → router returns null → legacy scaffold runs.
+    // We chdir to a tempdir so the legacy scaffold writes there, not into the
+    // repo root (iter 118 caught a stray artifact from the old version of this test).
     const dir = await mkdtemp(join(tmpdir(), 'openharness-bare-'));
+    const origCwd = process.cwd();
     try {
-      const r = await captureMain(['unknown-thing-not-a-verb', '--target', dir]);
-      // Whatever the result, the "from-repo" usage line MUST NOT appear.
+      process.chdir(dir);
+      const r = await captureMain(['unknown-name-here', '--force']);
+      // Whatever the result, the "from-repo" usage line MUST NOT appear —
+      // confirms the router did not intercept the unknown verb.
       expect(r.err).not.toMatch(/Usage: npx openharness from-repo/);
     } finally {
+      process.chdir(origCwd);
       await rm(dir, { recursive: true, force: true });
     }
   });
