@@ -3,20 +3,83 @@
   "description": "Customer support harness — 4 agents (triager, kb-searcher, responder, escalator), KB-RAG MCP server, escalation rules",
   "domain": "customer-support",
   "files": [
-    { "src": "package.json.tmpl", "dst": "package.json", "render": true },
-    { "src": "CLAUDE.md.tmpl", "dst": "CLAUDE.md", "render": true },
-    { "src": "README.md.tmpl", "dst": "README.md", "render": true },
-    { "src": ".claude/settings.json.tmpl", "dst": ".claude/settings.json", "render": true },
-    { "src": "src/init.ts.tmpl", "dst": "src/init.ts", "render": true },
-    { "src": "src/agents/triager.ts.tmpl", "dst": "src/agents/triager.ts", "render": true },
-    { "src": "src/agents/kb-searcher.ts.tmpl", "dst": "src/agents/kb-searcher.ts", "render": true },
-    { "src": "src/agents/responder.ts.tmpl", "dst": "src/agents/responder.ts", "render": true },
-    { "src": "src/agents/escalator.ts.tmpl", "dst": "src/agents/escalator.ts", "render": true },
-    { "src": "kb/README.md.tmpl", "dst": "kb/README.md", "render": true }
+    {
+      "src": "package.json.tmpl",
+      "dst": "package.json",
+      "render": true
+    },
+    {
+      "src": "CLAUDE.md.tmpl",
+      "dst": "CLAUDE.md",
+      "render": true
+    },
+    {
+      "src": "README.md.tmpl",
+      "dst": "README.md",
+      "render": true
+    },
+    {
+      "src": ".claude/settings.json.tmpl",
+      "dst": ".claude/settings.json",
+      "render": true
+    },
+    {
+      "src": ".claude-plugin/plugin.json.tmpl",
+      "dst": ".claude-plugin/plugin.json",
+      "render": true
+    },
+    {
+      "src": "src/init.ts.tmpl",
+      "dst": "src/init.ts",
+      "render": true
+    },
+    {
+      "src": "src/agents/triager.ts.tmpl",
+      "dst": "src/agents/triager.ts",
+      "render": true
+    },
+    {
+      "src": "src/agents/kb-searcher.ts.tmpl",
+      "dst": "src/agents/kb-searcher.ts",
+      "render": true
+    },
+    {
+      "src": "src/agents/responder.ts.tmpl",
+      "dst": "src/agents/responder.ts",
+      "render": true
+    },
+    {
+      "src": "src/agents/escalator.ts.tmpl",
+      "dst": "src/agents/escalator.ts",
+      "render": true
+    },
+    {
+      "src": "kb/README.md.tmpl",
+      "dst": "kb/README.md",
+      "render": true
+    }
   ],
   "vars": [
-    { "name": "name", "prompt": "Harness name (kebab-case)", "validate": "^[a-z0-9-]+$" },
-    { "name": "description", "prompt": "One-line description", "default": "Customer support with KB-RAG and escalation" },
-    { "name": "host", "prompt": "Host adapter", "default": "claude-code", "choices": ["claude-code", "codex", "pi-dev", "hermes"] }
+    {
+      "name": "name",
+      "prompt": "Harness name (kebab-case)",
+      "validate": "^[a-z0-9-]+$"
+    },
+    {
+      "name": "description",
+      "prompt": "One-line description",
+      "default": "Customer support with KB-RAG and escalation"
+    },
+    {
+      "name": "host",
+      "prompt": "Host adapter",
+      "default": "claude-code",
+      "choices": [
+        "claude-code",
+        "codex",
+        "pi-dev",
+        "hermes"
+      ]
+    }
   ]
 }

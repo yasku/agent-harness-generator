@@ -25,6 +25,11 @@
       "render": true
     },
     {
+      "src": ".claude-plugin/plugin.json.tmpl",
+      "dst": ".claude-plugin/plugin.json",
+      "render": true
+    },
+    {
       "src": "src/init.ts.tmpl",
       "dst": "src/init.ts",
       "render": true
