@@ -143,6 +143,12 @@ jobs:
         env:
           GCP_PROJECT: ${{ env.GCP_PROJECT_ID }}
           NPM_SECRET_NAME: NPM_TOKEN
+          # iter 145: validate-gcp-secrets.mjs validates the npm token AND
+          # any extra REQUIRED_SECRETS (comma-separated). The Pinata pin
+          # below is OPTIONAL by design, so PINATA_JWT is NOT required here
+          # by default. To make the IPFS marketplace pin a hard publish
+          # prerequisite, set: REQUIRED_SECRETS: PINATA_JWT
+          # REQUIRED_SECRETS: PINATA_JWT
         run: node scripts/validate-gcp-secrets.mjs
 
       - name: Gate 2 — npm publish dry-run on every package

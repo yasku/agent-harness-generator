@@ -27,6 +27,36 @@ const PROJECT = process.env.GCP_PROJECT;
 const SECRET = process.env.NPM_SECRET_NAME ?? 'NPM_TOKEN';
 const VERBOSE = process.env.VERBOSE === '1' || process.argv.includes('--verbose');
 
+/**
+ * Pure helper (exported for unit tests). Resolves which secrets the
+ * pre-publish gate must validate.
+ *
+ * - The npm token (NPM_SECRET_NAME, default NPM_TOKEN) is ALWAYS required
+ *   and is the one that gets the extra `npm whoami` liveness check.
+ * - Additional secrets come from REQUIRED_SECRETS (comma-separated). These
+ *   only need to exist + be fetchable (e.g. PINATA_API_JWT for the IPFS
+ *   marketplace pin). The npm token is de-duplicated if listed there too.
+ *
+ * Returns [{ name, npmCheck }] in a stable order, npm token first.
+ */
+export function parseRequiredSecrets(env = process.env) {
+  const npmName = (env.NPM_SECRET_NAME ?? 'NPM_TOKEN').trim();
+  const extra = (env.REQUIRED_SECRETS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => s !== npmName);
+  const seen = new Set();
+  const out = [{ name: npmName, npmCheck: true }];
+  seen.add(npmName);
+  for (const name of extra) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    out.push({ name, npmCheck: false });
+  }
+  return out;
+}
+
 function log(level, msg) {
   const tag = { pass: 'PASS', fail: 'FAIL', warn: 'WARN', info: 'INFO' }[level] ?? level;
   process.stderr.write(`[gcp-validate] ${tag}: ${msg}\n`);
@@ -86,52 +116,68 @@ async function main() {
   }
   log('pass', `auth principal = ${principal.split('\n')[0]}`);
 
-  // 4. Secret exists
-  const desc = await gcloud([
-    'secrets', 'describe', SECRET,
-    `--project=${PROJECT}`,
-    '--format=value(name)',
-  ]);
-  if (desc.code !== 0) {
-    fail(`secret '${SECRET}' not found in project ${PROJECT}: ${desc.stderr.trim()}`);
-  }
-  log('pass', `secret '${SECRET}' exists`);
+  // 4-6. Per-secret: exists → fetchable → (npm token only) npm whoami.
+  // iter 145: validate EVERY required publish-time secret, not just the
+  // npm token. REQUIRED_SECRETS (e.g. "PINATA_API_JWT") adds the secrets
+  // the IPFS marketplace pin needs, so a missing Pinata key fails the
+  // gate BEFORE publish rather than mid-pipeline.
+  const required = parseRequiredSecrets(process.env);
+  log('info', `validating ${required.length} secret(s): ${required.map((s) => s.name).join(', ')}`);
 
-  // 5. Secret version fetchable
-  const ver = await gcloud([
-    'secrets', 'versions', 'access', 'latest',
-    `--secret=${SECRET}`,
-    `--project=${PROJECT}`,
-  ]);
-  if (ver.code !== 0) {
-    fail(`cannot fetch latest version of '${SECRET}': ${ver.stderr.trim()}`);
-  }
-  const token = ver.stdout.trim();
-  if (!token) {
-    fail(`'${SECRET}' returned empty content`);
-  }
-  if (VERBOSE) log('info', `token length = ${token.length} chars`);
-  log('pass', `fetched '${SECRET}' from Secret Manager`);
-
-  // 6. npm whoami sanity-check
-  try {
-    const who = await execFile('npm', ['whoami', '--registry=https://registry.npmjs.org/'], {
-      env: { ...process.env, npm_config__authToken: token },
-      windowsHide: true,
-    });
-    const user = who.stdout.trim();
-    if (!user) {
-      fail(`npm whoami returned empty (token may be revoked)`);
+  for (const { name, npmCheck } of required) {
+    // exists
+    const desc = await gcloud([
+      'secrets', 'describe', name,
+      `--project=${PROJECT}`,
+      '--format=value(name)',
+    ]);
+    if (desc.code !== 0) {
+      fail(`secret '${name}' not found in project ${PROJECT}: ${desc.stderr.trim()}`);
     }
-    log('pass', `npm whoami = ${user}`);
-  } catch (e) {
-    fail(`npm whoami failed: ${(e.stderr ?? e.message ?? '').toString().trim() || 'unknown'}`);
+    log('pass', `secret '${name}' exists`);
+
+    // fetchable
+    const ver = await gcloud([
+      'secrets', 'versions', 'access', 'latest',
+      `--secret=${name}`,
+      `--project=${PROJECT}`,
+    ]);
+    if (ver.code !== 0) {
+      fail(`cannot fetch latest version of '${name}': ${ver.stderr.trim()}`);
+    }
+    const value = ver.stdout.trim();
+    if (!value) {
+      fail(`'${name}' returned empty content`);
+    }
+    if (VERBOSE) log('info', `'${name}' length = ${value.length} chars`);
+    log('pass', `fetched '${name}' from Secret Manager`);
+
+    // npm whoami liveness — only for the npm token
+    if (npmCheck) {
+      try {
+        const who = await execFile('npm', ['whoami', '--registry=https://registry.npmjs.org/'], {
+          env: { ...process.env, npm_config__authToken: value },
+          windowsHide: true,
+        });
+        const user = who.stdout.trim();
+        if (!user) {
+          fail(`npm whoami returned empty (token may be revoked)`);
+        }
+        log('pass', `npm whoami = ${user}`);
+      } catch (e) {
+        fail(`npm whoami failed: ${(e.stderr ?? e.message ?? '').toString().trim() || 'unknown'}`);
+      }
+    }
   }
 
   log('info', 'ALL CHECKS PASSED — publish gate OPEN');
   process.exit(0);
 }
 
-main().catch(err => {
-  fail(`unexpected error: ${err?.message ?? err}`);
-});
+// Only run main() when invoked directly, not when imported for tests.
+const invokedDirectly = process.argv[1] && process.argv[1].endsWith('validate-gcp-secrets.mjs');
+if (invokedDirectly) {
+  main().catch((err) => {
+    fail(`unexpected error: ${err?.message ?? err}`);
+  });
+}
