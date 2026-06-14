@@ -56,6 +56,16 @@ async function main() {
     await desktop.getByRole('button', { name: 'Skill / Agent / Command' }).click();
     await desktop.waitForSelector('text=Artifact type');
     await desktop.screenshot({ path: path.join(outDir, 'screenshot-artifact.png') });
+
+    // Desktop — Repo → Harness view.
+    await desktop.getByRole('button', { name: 'Repo → Harness' }).click();
+    await desktop.waitForSelector('text=Paste a GitHub repo');
+    await desktop.screenshot({ path: path.join(outDir, 'screenshot-repo.png') });
+
+    // Desktop — Verify view.
+    await desktop.getByRole('button', { name: 'Verify', exact: true }).click();
+    await desktop.waitForSelector('text=Verify a harness');
+    await desktop.screenshot({ path: path.join(outDir, 'screenshot-verify.png') });
     await desktop.close();
 
     // Mobile — Pixel-ish viewport.

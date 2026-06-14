@@ -43,8 +43,8 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 }
 
-export function HarnessBuilder() {
-  const [cfg, setCfg] = useState<HarnessConfig>(INITIAL);
+export function HarnessBuilder({ seed }: { seed?: HarnessConfig }) {
+  const [cfg, setCfg] = useState<HarnessConfig>(seed ?? INITIAL);
   const [selectedPath, setSelectedPath] = useState('README.md');
   const [busy, setBusy] = useState(false);
 

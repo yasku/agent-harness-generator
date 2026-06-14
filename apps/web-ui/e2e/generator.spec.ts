@@ -7,8 +7,8 @@ test.describe('Agent Harness Generator UI', () => {
     page.on('pageerror', (e) => errors.push(e.message));
 
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /Agent Harness/i })).toBeVisible();
-    await expect(page.getByText(/Scaffold your own focused AI agent harness/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Agent Harness Studio/i })).toBeVisible();
+    await expect(page.getByText(/Turn any GitHub repo/i)).toBeVisible();
     expect(errors, errors.join('\n')).toEqual([]);
   });
 
@@ -90,5 +90,20 @@ test.describe('Agent Harness Generator UI', () => {
     await page.getByRole('button', { name: 'Skill / Agent / Command' }).click();
     await page.getByRole('button', { name: 'Command', exact: true }).click();
     await expect(page.locator('pre')).toContainText('description:');
+  });
+
+  test('Repo → Harness: rejects a non-GitHub URL', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Repo → Harness' }).click();
+    await page.getByLabel('Repository URL').fill('https://example.com/not/github');
+    await page.getByTestId('analyze-repo').click();
+    await expect(page.getByText(/Not a GitHub URL/i)).toBeVisible();
+  });
+
+  test('Verify tab renders the dropzone and checklist', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Verify', exact: true }).click();
+    await expect(page.getByText(/Choose a harness .zip/i)).toBeVisible();
+    await expect(page.getByText(/default-deny, shell-gated/i)).toBeVisible();
   });
 });
