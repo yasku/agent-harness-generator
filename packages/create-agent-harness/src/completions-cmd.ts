@@ -29,6 +29,8 @@ const SUBCOMMANDS = [
   'score',
   // iter 112 — MCP threat-model artifact for enterprise review
   'threat-model',
+  // iter 121 — OIA v0.1 cross-cutting manifest (ADR-034)
+  'oia-manifest',
   'help',
 ] as const;
 
@@ -98,6 +100,7 @@ _harness() {
     'genome:7-section readiness scorecard for a local repo (--json/--bundle, iter 110)'
     'score:5-dimension harness scorecard 0–100 with badges (--json/--bundle, iter 111)'
     'threat-model:MCP threat-model artifact for PR/compliance review (--json/--bundle, iter 112)'
+    'oia-manifest:emit .harness/oia-manifest.json — OIA v0.1 layer alignment (ADR-034, iter 121)'
     'help:show help'
   )
 

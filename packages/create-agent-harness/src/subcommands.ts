@@ -29,6 +29,7 @@ import { compareCmd } from './compare-cmd.js';
 import { genomeCmd } from './genome.js';
 import { scoreCmd } from './score.js';
 import { threatModelCmd } from './threat-model.js';
+import { oiaManifestCmd } from './oia-manifest.js';
 import { analyzeRepoCmd } from './analyze-repo.js';
 
 // Pull the version from the workspace package.json (Node's `with: { type: 'json' }`
@@ -316,6 +317,8 @@ export async function dispatch(subcommand: string, args: string[]): Promise<Subc
       return scoreCmd(args.slice(0));
     case 'threat-model':
       return threatModelCmd(args.slice(0));
+    case 'oia-manifest':
+      return oiaManifestCmd(args.slice(0));
     case 'help':
     case undefined:
       return {
@@ -344,6 +347,7 @@ export async function dispatch(subcommand: string, args: string[]): Promise<Subc
           '  genome        — 7-section readiness scorecard for a local repo (iter 110)',
           '  score         — 5-dimension harness scorecard (0–100, grade A/B/C/F) (iter 111)',
           '  threat-model  — MCP threat-model artifact (enterprise review) (iter 112)',
+          '  oia-manifest  — emit .harness/oia-manifest.json (ADR-034 OIA v0.1) (iter 121)',
           '  help      — show this message',
           '',
           'Flags:',
