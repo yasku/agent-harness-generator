@@ -29,19 +29,23 @@ loop, proven on a real task family.
 Adopt a **proven-algorithm stack** for the synthesis loop, each mapped to an
 existing or named component so this is a roadmap, not vibes:
 
-| Stage | Algorithm (proven) | Maps to |
-|-------|--------------------|---------|
-| Repo intelligence | AST + dep-graph + README/test discovery | `repo-genome`, `analyze-repo` |
-| Capability inference | label propagation over the repo graph | extend `repo-genome` |
-| Candidate generation | **beam search** over harness templates | template catalog + walker |
-| Topology optimization | **MCTS** (UCT) over {add skill/tool/memory/verifier/MCP} | NEW `synth/` |
-| Meta design | **Graph of Thoughts** (nodes = design choices, edges = dep/conflict) | NEW `synth/` |
-| Execution primitive | **ReAct** (thought → tool → observe → update) | generated harness runtime |
-| Grounding | **Self-RAG** (retrieve only on uncertainty/novelty/dep-risk) | DRACO retrieval lessons |
-| Failure learning | **Reflexion** (structured failure → repair memory) | `@claude-flow` ReasoningBank |
-| Routing | **contextual bandits / neural router** | **`@ruvector/tiny-dancer`** + DRACO routing matrix (ADR-040) |
-| Validation | **constraint solving (SAT/CSP)** over hard requirements | NEW `synth/constraints.ts` |
-| Scoring | deterministic evals + the scorecard | DRACO scorer + `score-harness` |
+| Stage | Algorithm (proven) | Maps to | ruvector substrate |
+|-------|--------------------|---------|--------------------|
+| Repo intelligence | AST + dep-graph + README/test discovery | `repo-genome`, `analyze-repo` | — |
+| Capability inference | GNN message-passing over the repo graph (learned label propagation) | extend `repo-genome` | **`@ruvector/gnn`** (`RuvectorLayer.forward`) |
+| Candidate generation | **beam search** over harness templates | template catalog + walker | — |
+| Topology optimization | **MCTS** (UCT) over {add skill/tool/memory/verifier/MCP}, GNN value net | NEW `synth/` | **`@ruvector/gnn`** (partial-topology value) |
+| Meta design | **Graph of Thoughts** (nodes = design choices, edges = dep/conflict) | NEW `synth/` | **`@ruvector/gnn`** (differentiable search over the GoT) |
+| Execution primitive | **ReAct** (thought → tool → observe → update) | generated harness runtime | — |
+| Grounding | **Self-RAG** (retrieve only on uncertainty/novelty/dep-risk) | DRACO retrieval lessons | ruvector HNSW |
+| Failure learning | **Reflexion** (structured failure → repair memory) | `@claude-flow` ReasoningBank | ruvector HNSW |
+| Routing | **contextual bandits / neural router** | DRACO routing matrix + oracle (ADR-040) | **`@ruvector/tiny-dancer`** (FastGRNN + uncertainty + circuit breaker) |
+| Validation | **constraint solving (SAT/CSP)** over hard requirements | NEW `synth/constraints.ts` | — |
+| Scoring | deterministic evals + the scorecard | DRACO scorer + `score-harness` | — |
+
+The ruvector family (`@ruvector/gnn` + `@ruvector/tiny-dancer` + ruvector HNSW)
+is the proven Rust/NAPI substrate for the graph-intelligence, routing, and memory
+stages — so those stages reuse benchmarked native primitives, not bespoke code.
 
 ### Reward (topology search) — explicit, tunable
 
