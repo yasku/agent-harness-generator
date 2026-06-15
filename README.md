@@ -78,7 +78,7 @@ factual dossiers it mostly doesn't — and that is worth knowing.
 # In the browser — zero install, nothing leaves the page
 open https://ruvnet.github.io/agent-harness-generator/
 
-# Or in the terminal — same scaffold, byte-identical
+# Or in the terminal — the same harness (behaviourally equivalent output)
 npx metaharness my-bot --template vertical:coding --host claude-code
 cd my-bot && npx . --help
 ```

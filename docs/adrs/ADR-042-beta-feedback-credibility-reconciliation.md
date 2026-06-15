@@ -38,10 +38,16 @@ Accept the report. Triage:
 3. **Status story — pick "v0.1.x beta."** OVERVIEW ("pre-implementation") vs
    README ("production-ready") vs USAGE ("Phase 1") will be reconciled to a
    single "v0.1.x beta" status line. (doc sweep, follow-up PR)
-4. **CLI↔Studio parity — write the test or downgrade the claim.** ADR-027 names
-   `apps/web-ui/__tests__/parity.test.ts` as the sole drift guard; it does not
-   exist. Either add a real cross-package `Buffer.equal` scaffold-parity test or
-   downgrade the wording to "behaviorally equivalent." (follow-up)
+4. **CLI↔Studio parity — DONE (downgraded to the truth).** ADR-027 named
+   `apps/web-ui/__tests__/parity.test.ts` as the sole drift guard; it never
+   existed, and the surfaces are not byte-identical (the web-UI is an independent
+   browser port with inline templates; the CLI template gained `bin/cli.js` +
+   `tsconfig` + smoke test the web port doesn't emit). Rather than claim a guard
+   that doesn't hold, downgraded ADR-027 + README to **"behaviourally
+   equivalent"** (same file set + manifest semantics), with a status correction
+   noting byte-parity is not enforced and a real parity test is an open follow-up.
+   (README:160 — wrapper→CLI byte-identity — is *correct* and unchanged: wrappers
+   exec `npx metaharness`, so that scaffold genuinely is identical.)
 5. **Example-README fabricated transcripts — generate or mark illustrative.**
    The `trading`/`legal`/`research` wrappers show invented `harness doctor`
    output + README-only "safety." Regenerate from real `--scaffold` output or

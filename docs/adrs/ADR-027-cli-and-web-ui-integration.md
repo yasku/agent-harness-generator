@@ -36,26 +36,40 @@ The CLI's `packages/create-agent-harness/src/renderer.ts` is the **canonical** g
 
 The web-UI's generator (`apps/web-ui/src/generator/`) is a **behaviour-port**. It does NOT import from `packages/create-agent-harness/` (different runtime constraints: no Node fs, must work in a browser sandbox). But it implements the same surface, and the **parity contract** below pins them together.
 
-### 2. Parity contract enforced by tests
+### 2. Parity contract — BEHAVIOURAL equivalence (byte-parity NOT currently enforced)
 
-Both surfaces MUST produce byte-identical output for the same `(name, host, template, options)` tuple. Enforcement:
+> **Status correction (2026-06-15, issue #4 / ADR-042).** The original wording
+> below claimed byte-identical output *enforced by* `apps/web-ui/__tests__/
+> parity.test.ts`. **That test was never written, and the two surfaces are not
+> byte-identical**: the web-UI generator (`apps/web-ui/src/generator/scaffold.ts`)
+> is an independent browser port with its own inline templates, while the CLI
+> generator walks file templates that have since gained `bin/cli.js`,
+> `tsconfig.json`, and a smoke test (ADR ​kernel-fallback work) the web port does
+> not emit. The honest contract is **behavioural equivalence on the shared
+> subset** (same file SET, same manifest fingerprint semantics, same host
+> mapping) — NOT byte-identity. A real cross-package parity test (assert the
+> achievable invariant, or re-sync the surfaces to byte-identity first) is
+> tracked as an open follow-up; until it exists, no byte-parity guard is claimed.
 
-- `apps/web-ui/__tests__/parity.test.ts` (PR #1) — runs both generators against the same inputs and asserts `Buffer.equal()` on every file in the output.
-- The fingerprint algorithm (used by `.harness/manifest.json`) is the load-bearing detail: if the two surfaces drift here, the iter-20 `harness validate` umbrella's `doctor` check will reject web-UI output as if it had been hand-edited.
+The two surfaces aim to produce **behaviourally equivalent** output for the same
+`(name, host, template, options)` tuple — the same set of files with the same
+host/manifest semantics. The fingerprint algorithm (used by
+`.harness/manifest.json`) is the load-bearing detail; if the surfaces drift here,
+`harness validate`'s `doctor` check would reject web-UI output as hand-edited, so
+the manifest semantics are the part that must stay aligned.
 
-A PR that breaks the parity test must either:
-- Update both surfaces in lockstep, OR
-- Document an intentional surface-specific divergence in a follow-up ADR (and add a fixture exclusion to the parity test).
+A PR that changes one surface's shared-subset output should either update both in
+lockstep or document the intentional divergence in a follow-up ADR.
 
 ### 3. Surface-specific extensions are allowed; asymmetric-features table is authoritative
 
 The web-UI's **skill/agent/command authoring mode** (PR #1) has no CLI equivalent. That's fine — it's a strictly additive surface unique to the browser context (live editing, drag-drop, preview). The CLI continues to handle the post-scaffold lifecycle (sign / publish / upgrade) which the browser can't safely sandbox-execute.
 
-Asymmetric features are explicitly allowed; the **shared subset** (full-harness scaffolding) stays byte-identical:
+Asymmetric features are explicitly allowed; the **shared subset** (full-harness scaffolding) stays **behaviourally equivalent** (same file set + manifest semantics, not byte-identical — see the status correction above):
 
 | Feature | CLI | Web-UI |
 |---|---|---|
-| Full-harness scaffolding | yes | yes (byte-identical to CLI) |
+| Full-harness scaffolding | yes | yes (behaviourally equivalent to CLI) |
 | Witness sign/verify (iter 3/8) | yes | no — key custody belongs out of browser |
 | Validate umbrella (iter 20) | yes | no — Node-only ops |
 | Publish to IPFS via Pinata (iter 46) | yes | no — CORS + JWT custody |
