@@ -143,6 +143,44 @@ is at or near the DRACO ceiling — structure hurts (-0.10), refinement hurts
 result worth shipping is the benchmark's own verdict: deep-research *structure* does
 not beat a strong direct call on cross-domain factual dossiers under this scorer.
 
+#### Arm 3 — composite per-dimension selection: does NOT win (within noise)
+
+| arm | vanilla | best-of-3 | delta | grounding | coverage | balance | faithful | result |
+|-----|---------|-----------|-------|-----------|----------|---------|----------|--------|
+| frontier n=20 | 0.7325 | 0.7291 | **-0.0034** | -0.02 | +0.02 | **+0.03** | -0.05 | LOSS (noise) |
+
+Composite selection fixed arm 2's balance leak (+0.03 vs -0.05) and kept coverage,
+but faithfulness dropped (-0.05) — the candidate-level judge faithfulness rating
+doesn't align with the scorer's separate faithfulness judge. Net -0.0034.
+
+### Conclusion: vanilla is at the DRACO ceiling (well-evidenced)
+
+The decisive evidence is **vanilla's own run-to-run variance**. Across the four
+frontier runs vanilla scored 0.7143 / 0.7258 / 0.7189 / 0.7325 — a spread of
+**±0.02**, which is *larger than every arm's delta vs vanilla*:
+
+| arm | best Δ vs vanilla | inside vanilla's ±0.02 noise? |
+|-----|-------------------|-------------------------------|
+| harness (6-stage) | −0.10 | no — a real LOSS |
+| augment (verify→prune) | −0.03 | borderline — a real loss |
+| self-consistency (holistic) | +0.001 | YES — noise |
+| self-consistency (composite) | −0.003 | YES — noise |
+
+So selection arms do not merely "fail to win by margin" — their deltas are
+**inside vanilla's own noise floor.** To claim a margin win an arm must beat
+vanilla by MORE than ~0.02 (vanilla's between-run swing), with repeats. No
+transform/select arm approaches that. The honest, robust result: **on the DRACO
+scorer at frontier tier, a single well-prompted direct call is at the ceiling;
+deep-research structure and refinement degrade it, and selection matches it
+within noise.**
+
+The one untested, structurally-distinct lever is **UNION** (arm 4): merge the
+real, deduplicated citations from N independent vanilla dossiers. Unlike
+selection (capped by the best single draw) this can *add* grounding — the
+dominant dimension — above any single call. It is the only approach that could
+plausibly clear vanilla's noise floor. If UNION also stays within ±0.02, the
+ceiling finding is airtight and is the deliverable.
+
 ### What the baseline tells us (the real target)
 
 The harness loses to vanilla at BOTH tiers, and at frontier the gap is large
