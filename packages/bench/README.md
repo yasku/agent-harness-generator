@@ -78,6 +78,17 @@ Run artifacts: `draco/runs/*.json`. Arms are tested + offline-mockable; CI runs
 the full suite so no result regresses. Findings gist + ADR-038/039 carry the
 full evidence.
 
+- **Phase 2 — routing (the productized win).** Models disagree per question, so
+  the per-question *oracle* beats the best fixed model by ~7–10%. A learned
+  router captures it: a model's self-rating is useless (85% of oracle), but
+  routing on a real feature works — `domain_router` and an `embedding_knn_router`
+  (semantic) both beat the best fixed model (92%). The 92%→100% gap is
+  **data-limited**, not signal-limited — measured by a learning curve that rises
+  monotonically with training size (85%→92%, still climbing at n=19) and guarded
+  by a regression test. This is shipped as [`@metaharness/router`](https://www.npmjs.com/package/@metaharness/router):
+  `route(query)` → the cheapest model predicted to clear your quality bar. See
+  ADR-040.
+
 ## License
 
 MIT
