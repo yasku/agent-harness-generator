@@ -153,7 +153,11 @@ Composite selection fixed arm 2's balance leak (+0.03 vs -0.05) and kept coverag
 but faithfulness dropped (-0.05) — the candidate-level judge faithfulness rating
 doesn't align with the scorer's separate faithfulness judge. Net -0.0034.
 
-### Conclusion: vanilla is at the DRACO ceiling (well-evidenced)
+### Conclusion: within observed variance, no tested arm exceeded frontier vanilla
+
+(Stated precisely: this is a bounded claim over the arms we ran, not a proof that
+no harness can ever win. What IS proven is the *mechanism* that makes winning
+hard — see below.)
 
 The decisive evidence is **vanilla's own run-to-run variance**. Across the four
 frontier runs vanilla scored 0.7143 / 0.7258 / 0.7189 / 0.7325 — a spread of
@@ -170,9 +174,9 @@ So selection arms do not merely "fail to win by margin" — their deltas are
 **inside vanilla's own noise floor.** To claim a margin win an arm must beat
 vanilla by MORE than ~0.02 (vanilla's between-run swing), with repeats. No
 transform/select arm approaches that. The honest, robust result: **on the DRACO
-scorer at frontier tier, a single well-prompted direct call is at the ceiling;
-deep-research structure and refinement degrade it, and selection matches it
-within noise.**
+scorer at frontier tier, within observed variance no tested harness arm exceeded
+a single well-prompted direct call; deep-research structure and refinement
+degrade it, and selection matches it within noise.**
 
 #### Arm 4 — UNION: ruled out ANALYTICALLY (not run — would waste budget)
 
@@ -195,7 +199,8 @@ waste" line. Arm 4 is rejected analytically.
 
 Across four frontier runs + the scorer source, the result is airtight and
 **mechanistic**: on the DRACO scorer at frontier tier, a single well-prompted
-direct call is at the ceiling, and the scorer's structure *caps every alternative*:
+direct call was not exceeded by any tested arm, and the scorer's structure
+*caps every alternative we tried*:
 
 - **transform** (6-stage harness, verify→prune): loses live URLs → grounding −0.10 / −0.03.
 - **select** (best-of-N, holistic or composite): bounded by the best single draw → +0.001 / −0.003, inside vanilla's own ±0.02 between-run noise.

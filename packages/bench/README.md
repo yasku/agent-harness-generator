@@ -53,9 +53,10 @@ live OpenRouter model fusion. See ADR-037 for the design.
 
 **The honest result (ADR-038, ADR-039 — measured, not gamed):**
 
-- **Quality ceiling.** A single well-prompted frontier call is *unbeatable on
-  score*. Across 4 frontier runs every harness/fusion/refine/select arm landed
-  at or below vanilla (within its own ±0.02 between-run noise). The mechanism:
+- **Quality ceiling.** Within the observed benchmark variance, *no tested
+  harness arm exceeded the frontier vanilla ceiling*. Across 4 frontier runs
+  every harness/fusion/refine/select arm landed at or below vanilla (within its
+  own ±0.02 between-run noise). The mechanism:
   `grounding = (live URLs)/(total URLs)` is a fraction, so transforms lose live
   URLs, selection is capped by the best draw, and union can only dilute. The
   benchmark *falsified* the harness-beats-vanilla thesis with a mechanism.
