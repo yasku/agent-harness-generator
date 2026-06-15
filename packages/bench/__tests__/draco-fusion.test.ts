@@ -93,7 +93,7 @@ describe('DRACO fusion — live transport guards', () => {
     const fetchImpl = vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ choices: [{ message: { content: 'hi' } }], usage: { total_tokens: 5 } }),
+      text: async () => JSON.stringify({ choices: [{ message: { content: 'hi' } }], usage: { total_tokens: 5 } }),
     })) as unknown as typeof fetch;
     const t = openRouterTransport({ apiKey: 'test-key', fetchImpl });
     const out = await t('anthropic/claude-haiku-4', [{ role: 'user', content: 'q' }]);
@@ -120,6 +120,22 @@ describe('DRACO fusion — live transport guards', () => {
     expect(fetchImpl).toHaveBeenCalledOnce(); // 400 is not transient — never retried
   });
 
+  it('retries a 200 with an empty/unparseable body then succeeds', async () => {
+    let calls = 0;
+    const fetchImpl = vi.fn(async () => {
+      calls++;
+      if (calls === 1) {
+        // 200 OK but empty body — res.json()/JSON.parse would throw.
+        return { ok: true, status: 200, text: async () => '' };
+      }
+      return { ok: true, status: 200, text: async () => JSON.stringify({ choices: [{ message: { content: 'recovered' } }], usage: { total_tokens: 9 } }) };
+    }) as unknown as typeof fetch;
+    const t = openRouterTransport({ apiKey: 'k', fetchImpl, maxRetries: 3 });
+    const out = await t('m', [{ role: 'user', content: 'q' }]);
+    expect(out.text).toBe('recovered');
+    expect(calls).toBe(2);
+  });
+
   it('retries a transient 429 then succeeds (honours Retry-After)', async () => {
     let calls = 0;
     const fetchImpl = vi.fn(async () => {
@@ -127,7 +143,7 @@ describe('DRACO fusion — live transport guards', () => {
       if (calls === 1) {
         return { ok: false, status: 429, headers: { get: () => '0' }, json: async () => ({}) };
       }
-      return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'recovered' } }], usage: { total_tokens: 7 } }) };
+      return { ok: true, status: 200, text: async () => JSON.stringify({ choices: [{ message: { content: 'recovered' } }], usage: { total_tokens: 7 } }) };
     }) as unknown as typeof fetch;
     const t = openRouterTransport({ apiKey: 'k', fetchImpl, maxRetries: 3 });
     const out = await t('m', [{ role: 'user', content: 'q' }]);

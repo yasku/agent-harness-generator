@@ -166,10 +166,22 @@ export function openRouterTransport(opts: {
         clearTimeout(timer);
       }
       if (res.ok) {
-        const json = (await res.json()) as {
-          choices?: { message?: { content?: string } }[];
-          usage?: { total_tokens?: number };
-        };
+        // A 200 does NOT guarantee a JSON body: frontier models occasionally
+        // return an empty or truncated body (load, content filtering, upstream
+        // hiccup), and res.json() then throws "Unexpected end of JSON input".
+        // That escaped the !res.ok retry path and killed the whole run, so treat
+        // an unparseable 200 as a transient failure and retry.
+        const raw = await res.text();
+        let json: { choices?: { message?: { content?: string } }[]; usage?: { total_tokens?: number } };
+        try {
+          json = JSON.parse(raw);
+        } catch {
+          if (attempt === maxRetries) {
+            throw new Error(`OpenRouter ${modelId} → 200 with unparseable/empty body (after ${attempt} retries)`);
+          }
+          await sleep(Math.min(1000 * 2 ** attempt, 16000) + (attempt * 137) % 500);
+          continue;
+        }
         return {
           text: json.choices?.[0]?.message?.content ?? '',
           tokens: json.usage?.total_tokens ?? 0,
