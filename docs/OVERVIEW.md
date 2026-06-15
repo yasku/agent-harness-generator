@@ -2,7 +2,7 @@
 
 > A CLI that scaffolds custom AI agent harnesses — the way `create-vite` scaffolds web apps, but for vertical agent systems.
 
-**Status**: Pre-implementation. The repo `ruvnet/agent-harness-generator` does not exist yet. This directory holds the Architecture Decision Records (ADRs) that define what the system is, how it is structured, what it ships, and which trade-offs were taken. Engineers implement against these documents.
+**Status**: v0.1.x beta. The repo `ruvnet/agent-harness-generator` is published — `metaharness` on npm plus the `@metaharness/*` kernel, host adapters, and example packages. This directory holds the Architecture Decision Records (ADRs) that define what the system is, how it is structured, what it ships, and which trade-offs were taken; the implementation tracks them.
 
 **Read in order**: [adrs/INDEX.md](./adrs/INDEX.md).
 

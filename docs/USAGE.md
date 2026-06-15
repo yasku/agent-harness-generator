@@ -21,7 +21,7 @@ You'll be able to `npm publish` it and your users will do `npx my-bot init` in t
 
 ## 1. Install
 
-Once `metaharness` is published to npm (currently in Phase 1 development), you'll be able to run:
+`metaharness` is published to npm (v0.1.x beta) — run:
 
 ```bash
 npx metaharness my-bot                       # arg-driven (default template + claude-code)

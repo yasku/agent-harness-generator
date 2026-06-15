@@ -226,7 +226,11 @@ After scaffolding, every harness has a `harness` CLI:
 
 ## Status
 
-Production-ready release pipeline. CI matrix green: 16 jobs across Rust × 3 OS + WASM × 3 OS + Node 20+22 × 3 OS + Bench + pack+install × 3 OS + CI-passed aggregator. Single-command releases (`node scripts/release.mjs <bump> --push`) atomically bump 15 sources, run all gates, and tag.
+**v0.1.x beta** — published and usable, with the credibility/doc reconciliation in
+issue #4 / ADR-042 in progress. The release *pipeline* is mature: CI matrix green
+across Rust × 3 OS + WASM × 3 OS + Node 20+22 × 3 OS + Bench + pack+install × 3 OS
++ a CI-passed aggregator; single-command releases (`node scripts/release.mjs <bump>
+--push`) atomically bump 15 sources, run all gates, and tag.
 
 | Layer | Status |
 |---|---|
