@@ -10,7 +10,7 @@
 // fits this repo and what it would cost, before you scaffold anything.
 
 import { resolve, basename } from 'node:path';
-import { inventory, analyzeFiles, recommendPlan, ruvllmSemantic, type HarnessPlan } from './analyze-repo.js';
+import { inventory, analyzeFiles, recommendPlan, scoreArchetypes, ruvllmSemantic, type HarnessPlan } from './analyze-repo.js';
 
 export type SubcommandResult = { code: number; lines: string[] };
 
@@ -130,12 +130,57 @@ export function formatRepoScorecard(sc: RepoScorecard): string[] {
   ];
 }
 
+/** One candidate harness design (ADR-041 candidate-generation / beam stage). */
+export interface CandidateScore {
+  archetype: string;
+  label: string;
+  template: string;
+  harnessFit: number;
+  recommendedMode: 'CLI' | 'CLI + MCP';
+}
+
+/**
+ * The top-N candidate harness designs for a repo, each scored — the beam-search
+ * candidate-generation stage of ADR-041 over the archetype library. Lets the user
+ * see the alternatives, not just the single recommendation.
+ */
+export function topCandidates(dir: string, n = 3): CandidateScore[] {
+  const files = inventory(dir);
+  let name = basename(resolve(dir)) || 'repo';
+  try {
+    const pkgName = files['package.json'] ? (JSON.parse(files['package.json']) as { name?: string }).name : undefined;
+    if (pkgName) name = pkgName;
+  } catch {
+    /* keep basename */
+  }
+  const profile = analyzeFiles(name, files);
+  return scoreArchetypes(profile, ruvllmSemantic(profile))
+    .slice(0, Math.max(1, n))
+    .map((s) => ({
+      archetype: s.archetype.id,
+      label: s.archetype.label,
+      template: s.archetype.template,
+      harnessFit: clamp100(s.confidence * 100),
+      recommendedMode: (s.archetype.mcp === 'off' ? 'CLI' : 'CLI + MCP') as CandidateScore['recommendedMode'],
+    }));
+}
+
+/** Format the top-N candidates as a ranked list. */
+export function formatCandidates(repo: string, cands: CandidateScore[]): string[] {
+  return [
+    `Top ${cands.length} harness designs — ${repo}`,
+    ``,
+    ...cands.map((c, i) => `  ${i + 1}. ${c.label.padEnd(22)} fit ${String(c.harnessFit).padStart(3)}/100  ${c.recommendedMode.padEnd(9)}  (${c.template})`),
+  ];
+}
+
 function usage(): string[] {
   return [
-    'Usage: metaharness score <repo-path> [--json]',
+    'Usage: metaharness score <repo-path> [--json] [--top N]',
     '',
     'Produces the ADR-041 scorecard: harness fit, compile confidence, task',
     'coverage, tool safety, memory usefulness, est. $/run, recommended mode.',
+    '--top N lists the N best-fit harness designs (candidate generation).',
     'No-exec: only reads high-signal files; never runs repo code.',
   ];
 }
@@ -144,9 +189,20 @@ function usage(): string[] {
 export async function scoreRepoCmd(args: string[]): Promise<SubcommandResult> {
   const json = args.includes('--json');
   const positional: string[] = [];
-  for (const a of args) {
+  let topN: number | null = null;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
     if (a === '--json') continue;
     if (a === '--help' || a === '-h') return { code: 0, lines: usage() };
+    if (a === '--top') {
+      const v = parseInt(args[++i] ?? '', 10);
+      if (!Number.isFinite(v) || v < 1) {
+        const err = { schema: 1 as const, error: 'invalid-top', exitCode: 2 };
+        return { code: 2, lines: [json ? JSON.stringify(err, null, 2) : '--top requires a positive integer'] };
+      }
+      topN = v;
+      continue;
+    }
     if (a.startsWith('--')) {
       const err = { schema: 1 as const, error: `unknown-flag-${a.replace(/^--?/, '')}`, exitCode: 2 };
       return { code: 2, lines: [json ? JSON.stringify(err, null, 2) : `Unknown flag: ${a}`] };
@@ -157,6 +213,18 @@ export async function scoreRepoCmd(args: string[]): Promise<SubcommandResult> {
 
   const dir = resolve(positional[0]!);
   try {
+    if (topN != null) {
+      const cands = topCandidates(dir, topN);
+      const repo = (() => {
+        try {
+          const f = inventory(dir)['package.json'];
+          return (f && (JSON.parse(f) as { name?: string }).name) || basename(dir);
+        } catch {
+          return basename(dir);
+        }
+      })();
+      return { code: 0, lines: json ? [JSON.stringify({ schema: 1, repo, candidates: cands }, null, 2)] : formatCandidates(repo, cands) };
+    }
     const sc = buildRepoScorecard(dir);
     return { code: 0, lines: json ? [JSON.stringify(sc, null, 2)] : formatRepoScorecard(sc) };
   } catch (err) {

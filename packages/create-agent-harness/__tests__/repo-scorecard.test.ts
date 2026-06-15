@@ -5,7 +5,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildRepoScorecard, formatRepoScorecard, scoreRepoCmd } from '../src/repo-scorecard.js';
+import { buildRepoScorecard, formatRepoScorecard, scoreRepoCmd, topCandidates } from '../src/repo-scorecard.js';
 
 let repo: string;
 
@@ -69,6 +69,22 @@ describe('formatRepoScorecard', () => {
   });
 });
 
+describe('topCandidates (beam / candidate generation)', () => {
+  it('returns N ranked candidates, each with a fit score and mode', () => {
+    const cands = topCandidates(repo, 3);
+    expect(cands.length).toBe(3);
+    // ranked descending by fit
+    expect(cands[0].harnessFit).toBeGreaterThanOrEqual(cands[1].harnessFit);
+    expect(cands[1].harnessFit).toBeGreaterThanOrEqual(cands[2].harnessFit);
+    for (const c of cands) {
+      expect(c.harnessFit).toBeGreaterThanOrEqual(0);
+      expect(c.harnessFit).toBeLessThanOrEqual(100);
+      expect(['CLI', 'CLI + MCP']).toContain(c.recommendedMode);
+      expect(c.template).toBeTruthy();
+    }
+  });
+});
+
 describe('scoreRepoCmd', () => {
   it('exits 0 and prints the card for a valid repo', async () => {
     const r = await scoreRepoCmd([repo]);
@@ -89,5 +105,13 @@ describe('scoreRepoCmd', () => {
   });
   it('--help → exit 0 usage', async () => {
     expect((await scoreRepoCmd(['--help'])).code).toBe(0);
+  });
+  it('--top 2 lists 2 candidate designs', async () => {
+    const r = await scoreRepoCmd([repo, '--top', '2']);
+    expect(r.code).toBe(0);
+    expect(r.lines.join('\n')).toMatch(/Top 2 harness designs/);
+  });
+  it('--top with bad value → exit 2', async () => {
+    expect((await scoreRepoCmd([repo, '--top', 'x'])).code).toBe(2);
   });
 });
