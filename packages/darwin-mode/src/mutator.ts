@@ -32,6 +32,13 @@ export interface CodeGenerator {
     repoSummary: string;
     parentScore: number;
     failedTraces: string[];
+    /**
+     * Sibling-diversity nonce (ADR-104): the child's index within its
+     * generation. Siblings mutating the same surface use it to explore
+     * DIFFERENT edit directions (e.g. retry budget up vs. down) instead of an
+     * identical edit. Deterministic, defaults to 0 — so reproducibility holds.
+     */
+    nonce?: number;
   }): Promise<{ code: string; summary: string }>;
 }
 
@@ -145,9 +152,14 @@ export class DeterministicMutator implements CodeGenerator {
     repoSummary: string;
     parentScore: number;
     failedTraces: string[];
+    nonce?: number;
   }): Promise<{ code: string; summary: string }> {
     const { parentCode, surface } = input;
-    const variant = hash(this.seed, surface, parentCode.length) % 6;
+    // The sibling nonce (child index) makes same-surface siblings explore
+    // DIFFERENT edits (e.g. retry budget +1 vs −1), so a generation covers both
+    // directions instead of one — fixing the "budget never grows upward" bug
+    // found in ADR-103. Deterministic ⇒ reproducible.
+    const variant = hash(this.seed, surface, parentCode.length, input.nonce ?? 0) % 6;
     const start = hash(this.seed, surface) % EDIT_RULES.length;
 
     for (let i = 0; i < EDIT_RULES.length; i++) {
@@ -337,6 +349,7 @@ export async function createChildVariant(
     repoSummary: context.repoSummary ?? '',
     parentScore: context.parentScore ?? 0,
     failedTraces: context.failedTraces ?? [],
+    nonce: index, // sibling-diversity nonce (ADR-104)
   });
 
   // 4) Gate: validate BEFORE writing. Violations are discarded, never written.
