@@ -23,6 +23,7 @@ const args = process.argv.slice(2);
 const argv = (f, d) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : d; };
 const onlyInstance = argv('--instance', null);
 const K = +argv('--k', 15);
+const LOCALIZE = args.includes('--localize');
 const MODEL = argv('--model', 'deepseek/deepseek-chat');
 const rel = (p) => (isAbsolute(p) ? p : join(HERE, p));
 const OUT = rel(argv('--out', 'predictions.jsonl'));
@@ -74,6 +75,30 @@ function fetchRepo(repo, sha) {
   return work;
 }
 
+// ADR-146 fix: LLM file LOCALIZATION. The lexical contextBuilder has only ~45% selection recall
+// on huge repos (gold-file paths barely overlap the bug report). This adds a cheap localization
+// call: lexically pre-prune to `pre` candidates, show the model only PATHS + def/class signatures
+// (not full content → cheap), and let it pick the top `k` files to edit. Returns ranked paths.
+async function localize(problem, work, files, buildContext, k, pre = 120) {
+  const lexTop = selectFiles(problem, work, files, buildContext, pre); // cheap prune 800→60
+  const sigOf = (f) => {
+    const lines = readFileSync(join(work, f), 'utf8').split('\n');
+    const sigs = lines.filter((l) => /^\s*(class|def|async def)\s+\w/.test(l)).map((l) => l.trim().replace(/:\s*$/, '')).slice(0, 8);
+    return sigs.length ? `${f}\n    ${sigs.join('\n    ')}` : f;
+  };
+  const listing = lexTop.map(sigOf).join('\n');
+  const prompt = `A bug is reported below. From the candidate files (path + top signatures), list ONLY the file paths most likely to contain the fix, most-likely first, one per line, at most ${k}. Output paths verbatim, nothing else.\n--- problem ---\n${problem.slice(0, 4000)}\n--- candidate files ---\n${listing.slice(0, 24000)}\n`;
+  let cost = 0;
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 400, temperature: 0 }) });
+    const j = await res.json(); cost = j.usage?.cost ?? 0;
+    const raw = j.choices?.[0]?.message?.content ?? '';
+    const picked = raw.split('\n').map((l) => l.trim().replace(/^[-*\d.\s]+/, '')).filter((l) => files.includes(l));
+    const merged = [...new Set([...picked, ...lexTop])].slice(0, k); // LLM picks first, lexical fills
+    return { selected: merged, cost };
+  } catch { return { selected: lexTop.slice(0, k), cost }; }
+}
+
 writeFileSync(OUT, ''); // fresh
 const report = []; let totalCost = 0, totalTok = 0;
 for (const inst of manifest) {
@@ -84,7 +109,9 @@ for (const inst of manifest) {
     const all = g(work, "git ls-files '*.py'").toString().split('\n').filter(Boolean)
       .filter((f) => !/(^|\/)(tests?|testing|_pytest\/_.*|site-packages|node_modules|\.tox|build|dist)\//i.test(f) && !/(^|\/)(test_|conftest)/i.test(f) && !/_test\.py$/.test(f))
       .filter((f) => { try { return statSync(join(work, f)).size <= 100_000; } catch { return false; } });
-    const selected = selectFiles(inst.problem_statement, work, all, buildContext, K);
+    let selected;
+    if (LOCALIZE) { const lz = await localize(inst.problem_statement, work, all, buildContext, K); selected = lz.selected; totalCost += lz.cost; row.localizeCost = lz.cost; }
+    else selected = selectFiles(inst.problem_statement, work, all, buildContext, K);
     row.candidateFiles = all.length; row.selected = selected;
     const seen = selected.map((f) => `# ===== ${f} =====\n${readFileSync(join(work, f), 'utf8').slice(0, 45000)}`).join('\n\n');
     const prompt = `Fix the bug described below by editing the selected real source files. For EACH change emit a block EXACTLY:\nFILE: <one selected path>\n<<<SEARCH\n<exact lines copied verbatim from that file>\n=======\n<replacement lines>\n>>>REPLACE\nThe SEARCH text must match the file character-for-character (incl. indentation). Emit multiple blocks if needed. No prose outside blocks.\n--- problem statement ---\n${inst.problem_statement.slice(0, 6000)}\n--- selected source files ---\n${seen}\n`;
