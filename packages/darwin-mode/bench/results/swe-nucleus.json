@@ -1,0 +1,16 @@
+{
+  "experiment": "ADR-098 nucleus with REAL multi-file content (ADR-117)",
+  "date": "2026-06-18",
+  "method": "5-file repo (intervals.js has a real touching-merge bug; 4 plausible distractors of varied relevance) + a real Node test. The variant's REAL contextBuilder ranks/selects files; the real LLM is given the SELECTED FILES' ACTUAL CONTENT + the failing test and must identify the buggy file and fix it from the code (no hardcoded fix, returns JSON {file,content}); the REAL test command is the verdict.",
+  "model": "google/gemini-2.5-flash",
+  "selectedTopFiles": ["intervals.js","merge_report.js","sort.js","format.js","overlap_utils.js"],
+  "buggyFileRankedFirst": true,
+  "llmChoseFile": "intervals.js",
+  "beforePass": false,
+  "afterPass": true,
+  "verdict": "FIXED",
+  "tokens": 583,
+  "cost_usd": 0.000462825,
+  "significance": "End-to-end real SWE-style loop at micro scale: real contextBuilder surfaces the right file by relevance, real LLM REASONS over real multi-file code to pick AND fix the bug, real test confirms. Beyond ADR-109 (hardcoded fix) — the LLM does the reasoning. ~$0.0005.",
+  "honest_scope": "Hand-built 5-file repo, one bug, one model call — a nucleus, not a SWE-bench run. Scaling to a real multi-file corpus with per-variant evolution is the remaining ADR-098 build."
+}
