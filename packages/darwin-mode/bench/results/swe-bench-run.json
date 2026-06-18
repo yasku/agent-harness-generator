@@ -1,0 +1,17 @@
+{
+  "experiment": "ADR-125 — consolidated runSweBenchTask() entry point (corpus-ready)",
+  "callShape": "for (const task of dataset) await runSweBenchTask(task, { model, key })",
+  "result": {
+    "instance_id": "synthetic__pareto-dominance",
+    "resolved": true,
+    "f2p": "4/4",
+    "p2p": "18/18",
+    "FAIL_TO_PASS": 4,
+    "PASS_TO_PASS": 18,
+    "chose": "pareto.ts",
+    "patchBytes": 3895,
+    "tokens": 15678,
+    "cost_usd": 0.0022533489
+  },
+  "verdict": "RUNNER VALIDATED: full reliable pipeline RESOLVES the instance end-to-end"
+}
