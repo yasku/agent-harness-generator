@@ -17,7 +17,7 @@
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { FILE_BY_SURFACE, SURFACES, validateGeneratedCode } from './safety.js';
-import type { HarnessVariant, MutationSurface } from './types.js';
+import type { HarnessVariant, MutationSurface, RunTrace } from './types.js';
 
 /**
  * A pluggable code generator. Given the parent's surface file and context, it
@@ -169,6 +169,42 @@ export class DeterministicMutator implements CodeGenerator {
 }
 
 /**
+ * Reflection context (ADR-071 §contract) carried from a parent's evaluation into
+ * its child's mutation. The DeterministicMutator ignores it (stays reproducible);
+ * an LLM-backed CodeGenerator uses it to target the parent's actual failures —
+ * closing the self-improvement loop instead of mutating blind.
+ */
+export interface MutationContext {
+  /** Short human-readable repo summary (RepoProfile.summary). */
+  repoSummary?: string;
+  /** The parent variant's finalScore (0 if unknown). */
+  parentScore?: number;
+  /** Compact, one-line-per-failure summaries of the parent's failing traces. */
+  failedTraces?: string[];
+}
+
+/**
+ * Distil a parent's run traces into compact failure summaries for the mutator.
+ * A trace "failed" if it exited non-zero, timed out, or tripped a safety block.
+ * Pure and deterministic — order-preserving, no wall-clock, no I/O.
+ */
+export function summarizeFailedTraces(traces: RunTrace[]): string[] {
+  const out: string[] = [];
+  for (const t of traces) {
+    const failed = t.exitCode !== 0 || t.timedOut || t.blockedActions.length > 0;
+    if (!failed) continue;
+    const why = t.blockedActions.length > 0
+      ? `blocked: ${t.blockedActions.join(', ')}`
+      : t.timedOut
+        ? 'timed out'
+        : `exit ${t.exitCode}`;
+    const tail = (t.stderr || t.stdout || '').trim().split('\n').pop()?.slice(0, 160) ?? '';
+    out.push(`task ${t.taskId}: ${why}${tail ? ` — ${tail}` : ''}`);
+  }
+  return out;
+}
+
+/**
  * Deterministically pick one of the seven surfaces from `(generation+index+seed)`.
  * Same inputs ⇒ same surface (reproducibility, ADR-070 §seed).
  */
@@ -207,6 +243,7 @@ export async function createChildVariant(
   index: number,
   gen: CodeGenerator = new DeterministicMutator(),
   seed = 0,
+  context: MutationContext = {},
 ): Promise<HarnessVariant> {
   const id = `g${generation}_v${index}`;
   const dir = join(workRoot, 'variants', id);
@@ -220,13 +257,15 @@ export async function createChildVariant(
   const filePath = join(dir, fileName);
   const parentCode = await readFile(filePath, 'utf8');
 
-  // 3) Generate a candidate mutation for that one file.
+  // 3) Generate a candidate mutation for that one file. The reflection context
+  //    (parent score + failures) lets an LLM generator target real weaknesses;
+  //    the DeterministicMutator ignores it and stays byte-reproducible.
   const { code, summary } = await gen.generateMutation({
     parentCode,
     surface,
-    repoSummary: '',
-    parentScore: 0,
-    failedTraces: [],
+    repoSummary: context.repoSummary ?? '',
+    parentScore: context.parentScore ?? 0,
+    failedTraces: context.failedTraces ?? [],
   });
 
   // 4) Gate: validate BEFORE writing. Violations are discarded, never written.

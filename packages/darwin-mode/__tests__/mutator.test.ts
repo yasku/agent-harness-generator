@@ -14,9 +14,27 @@ import {
   createChildVariant,
   pickSurface,
   DeterministicMutator,
+  summarizeFailedTraces,
   type CodeGenerator,
 } from '../src/mutator.js';
-import type { HarnessVariant } from '../src/types.js';
+import type { HarnessVariant, RunTrace } from '../src/types.js';
+
+/** Build a RunTrace with sane defaults; override only what a test cares about. */
+function trace(over: Partial<RunTrace> = {}): RunTrace {
+  return {
+    variantId: 'v',
+    taskId: 'task-1',
+    startedAt: '2026-01-01T00:00:00Z',
+    finishedAt: '2026-01-01T00:00:01Z',
+    exitCode: 0,
+    stdout: '',
+    stderr: '',
+    durationMs: 1000,
+    timedOut: false,
+    blockedActions: [],
+    ...over,
+  };
+}
 
 /** Safe stub bodies for the seven approved files: mutable, no blocked content. */
 const STUB_FILES: Record<string, string> = {
@@ -139,5 +157,74 @@ describe('createChildVariant', () => {
 
     // And the child still passes the hard gate.
     expect(await inspectVariant(child.dir)).toEqual([]);
+  });
+
+  it('forwards the reflection context (repoSummary, parentScore, failedTraces) to the generator', async () => {
+    const parent = await makeParent(join(workRoot, 'parent'));
+    let seen: Parameters<CodeGenerator['generateMutation']>[0] | null = null;
+    const capturing: CodeGenerator = {
+      async generateMutation(input) {
+        seen = input;
+        return { code: input.parentCode, summary: 'no-op capture' };
+      },
+    };
+
+    await createChildVariant(parent, workRoot, 1, 0, capturing, 0, {
+      repoSummary: 'demo repo: a tiny TS lib',
+      parentScore: 0.71,
+      failedTraces: ['task t1: exit 1 — boom'],
+    });
+
+    expect(seen).not.toBeNull();
+    expect(seen!.repoSummary).toBe('demo repo: a tiny TS lib');
+    expect(seen!.parentScore).toBe(0.71);
+    expect(seen!.failedTraces).toEqual(['task t1: exit 1 — boom']);
+  });
+
+  it('defaults the reflection context to empty when none is passed (back-compat)', async () => {
+    const parent = await makeParent(join(workRoot, 'parent'));
+    let seen: Parameters<CodeGenerator['generateMutation']>[0] | null = null;
+    const capturing: CodeGenerator = {
+      async generateMutation(input) {
+        seen = input;
+        return { code: input.parentCode, summary: 'no-op' };
+      },
+    };
+    await createChildVariant(parent, workRoot, 1, 0, capturing, 0);
+    expect(seen!.repoSummary).toBe('');
+    expect(seen!.parentScore).toBe(0);
+    expect(seen!.failedTraces).toEqual([]);
+  });
+});
+
+describe('summarizeFailedTraces', () => {
+  it('returns nothing when every trace passed cleanly', () => {
+    expect(summarizeFailedTraces([trace(), trace({ taskId: 'task-2' })])).toEqual([]);
+  });
+
+  it('summarizes a non-zero exit with the last stderr line', () => {
+    const out = summarizeFailedTraces([
+      trace({ taskId: 'build', exitCode: 1, stderr: 'line A\nTypeError: boom' }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain('task build');
+    expect(out[0]).toContain('exit 1');
+    expect(out[0]).toContain('TypeError: boom');
+  });
+
+  it('flags timeouts and safety blocks distinctly', () => {
+    const out = summarizeFailedTraces([
+      trace({ taskId: 'slow', timedOut: true }),
+      trace({ taskId: 'risky', blockedActions: ['reads process.env'] }),
+    ]);
+    expect(out[0]).toContain('timed out');
+    expect(out[1]).toContain('blocked: reads process.env');
+  });
+
+  it('caps the failure tail so prompts stay bounded', () => {
+    const huge = 'x'.repeat(5000);
+    const out = summarizeFailedTraces([trace({ exitCode: 2, stderr: huge })]);
+    // "task task-1: exit 2 — " prefix + ≤160 chars of tail.
+    expect(out[0].length).toBeLessThanOrEqual(200);
   });
 });

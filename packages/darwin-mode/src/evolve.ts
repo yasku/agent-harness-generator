@@ -13,7 +13,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Archive } from './archive.js';
 import { generateBaselineHarness } from './generator.js';
-import { createChildVariant, DeterministicMutator } from './mutator.js';
+import { createChildVariant, DeterministicMutator, summarizeFailedTraces } from './mutator.js';
 import { profileRepo } from './repo_profiler.js';
 import { runVariantTasks } from './sandbox.js';
 import { scoreVariant } from './scorer.js';
@@ -126,6 +126,9 @@ export async function evolve(config: EvolutionConfig): Promise<EvolutionResult> 
   await archive.save();
 
   const scoreById = new Map<string, ScoreCard>([[baseline.id, baselineEval.score]]);
+  // Parent traces are carried forward so a child's mutation can target the
+  // parent's ACTUAL failures (ADR-071 self-reflection); empty until a run fails.
+  const tracesById = new Map<string, RunTrace[]>([[baseline.id, baselineEval.traces]]);
   let parents: HarnessVariant[] = [baseline];
 
   // --- generations ---
@@ -141,6 +144,11 @@ export async function evolve(config: EvolutionConfig): Promise<EvolutionResult> 
           index,
           mutator,
           seed,
+          {
+            repoSummary: profile.summary,
+            parentScore: scoreById.get(parent.id)?.finalScore ?? 0,
+            failedTraces: summarizeFailedTraces(tracesById.get(parent.id) ?? []),
+          },
         );
         archive.addVariant(child);
         children.push({ child, parent });
@@ -159,6 +167,7 @@ export async function evolve(config: EvolutionConfig): Promise<EvolutionResult> 
     for (const ev of evals) {
       await commit(archive, config.workRoot, ev);
       scoreById.set(ev.variant.id, ev.score);
+      tracesById.set(ev.variant.id, ev.traces);
       if (ev.score.promoted) promoted.push(ev.variant);
       spent += traceSeconds(ev.traces);
       if (config.costBudgetSeconds && spent >= config.costBudgetSeconds) break;
