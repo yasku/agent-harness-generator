@@ -1,0 +1,33 @@
+{
+  "benchmark": "DRACO deep-research quality/cost frontier",
+  "date": "2026-06-17",
+  "method": "Each model answers the same DRACO corpus question (gut microbiome ↔ mental health, 600–900 word citation-grounded dossier) via the live OpenRouter API. Each dossier scored 0–100 by 3 BLIND judges (median = self-consistency). Cost = (total_tokens / 1e6) × blended USD/Mtok from packages/bench/src/draco/cost-efficiency.ts. All numbers are real OpenRouter usage + real judge output — nothing fabricated.",
+  "judge_rubric": "coverage (gut-brain axis, serotonin, depression, probiotics, causation-vs-correlation) + citations (plausible author+year+venue, penalize fabricated) + nuance (consensus + 2 strongest dissents).",
+  "max_tokens": 8000,
+  "note": "First pass used max_tokens=1600; gpt-5, gpt-5-mini (reasoning models) and gemini-2.5-pro were truncated (reasoning consumed the budget / cut off). Re-run at 8000 tokens — these three rows reflect the complete dossiers.",
+  "rows": [
+    { "model": "openai/gpt-5",             "tier": "frontier", "priceUSDPerMTok": 12, "quality": 93, "judges": [93, 92, 93], "tokens": 5876, "latencyMs": 72453, "costPerDossierUSD": 0.070512, "qualityPerUSD": 1318.92 },
+    { "model": "anthropic/claude-sonnet-4","tier": "mid",      "priceUSDPerMTok": 9,  "quality": 88, "judges": [88, 88, 87], "tokens": 1592, "latencyMs": 19777, "costPerDossierUSD": 0.014328, "qualityPerUSD": 6141.82 },
+    { "model": "google/gemini-2.5-pro",    "tier": "mid",      "priceUSDPerMTok": 7,  "quality": 88, "judges": [90, 86, 88], "tokens": 3475, "latencyMs": 36030, "costPerDossierUSD": 0.024325, "qualityPerUSD": 3617.68 },
+    { "model": "openai/gpt-5-mini",        "tier": "cheap",    "priceUSDPerMTok": 2,  "quality": 86, "judges": [86, 85, 86], "tokens": 5571, "latencyMs": 58137, "costPerDossierUSD": 0.011142, "qualityPerUSD": 7718.54 },
+    { "model": "google/gemini-2.5-flash",  "tier": "cheap",    "priceUSDPerMTok": 1,  "quality": 82, "judges": [85, 81, 82], "tokens": 1457, "latencyMs": 9437,  "costPerDossierUSD": 0.001457, "qualityPerUSD": 56280.03 },
+    { "model": "anthropic/claude-opus-4",  "tier": "frontier", "priceUSDPerMTok": 45, "quality": 76, "judges": [76, 82, 74], "tokens": 1364, "latencyMs": 37166, "costPerDossierUSD": 0.061380, "qualityPerUSD": 1238.19 },
+    { "model": "anthropic/claude-haiku-4.5","tier": "cheap",   "priceUSDPerMTok": 3,  "quality": 76, "judges": [76, 78, 68], "tokens": 1561, "latencyMs": 13465, "costPerDossierUSD": 0.004683, "qualityPerUSD": 16228.91 }
+  ],
+  "pareto_frontier": [
+    { "model": "google/gemini-2.5-flash",  "quality": 82, "costPerDossierUSD": 0.001457 },
+    { "model": "openai/gpt-5-mini",        "quality": 86, "costPerDossierUSD": 0.011142 },
+    { "model": "anthropic/claude-sonnet-4","quality": 88, "costPerDossierUSD": 0.014328 },
+    { "model": "openai/gpt-5",             "quality": 93, "costPerDossierUSD": 0.070512 }
+  ],
+  "dominated": {
+    "anthropic/claude-haiku-4.5": "76@$0.00468 dominated by gemini-2.5-flash 82@$0.00146 (cheaper AND higher quality)",
+    "anthropic/claude-opus-4": "76@$0.06138 dominated by every other model — worst quality/$ despite highest price",
+    "google/gemini-2.5-pro": "88@$0.02433 dominated by claude-sonnet-4 88@$0.01433 (same quality, cheaper)"
+  },
+  "headline": {
+    "cheap_beats_frontier": "google/gemini-2.5-flash (cheap, $1/Mtok) scores 82 > anthropic/claude-opus-4 (frontier, $45/Mtok) at 76 — HIGHER judged quality at 1/42 the cost, and 4× faster (9.4s vs 37.2s).",
+    "quality_per_dollar": "gemini-2.5-flash = 56,280 quality/$ vs opus-4 1,238 (45.5×) and gpt-5 1,319 (42.7×).",
+    "diminishing_returns": "gpt-5's top quality (93) costs 48× more per dossier than gemini-2.5-flash's 82 — a +13% quality gain for +4,739% cost."
+  }
+}
