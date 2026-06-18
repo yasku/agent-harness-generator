@@ -53,6 +53,7 @@ LLM, deterministic). **LLM** = one or more live OpenRouter calls (set
 | 137 | Micro-evolve noise floor + epistasis (honest stop) | `node --experimental-strip-types bench/experiments/swe-evolve-crossover.mjs` | `results/swe-evolve-crossover.json` | per-cell variance dominates (deepseek/wholefile 0/3 vs 2/3); model×patchMode epistasis → naive crossover fails → use linkage-aware (093) + averaged runs | LLM |
 | 138 | Micro-evolve fitness noise floor, quantified | `node --experimental-strip-types bench/experiments/swe-fitness-variance.mjs` | `results/swe-fitness-variance.json` | per-genome resolve sd≈0.4-0.5/3; means ~0.5 apart → need ~4-5 averaged runs to distinguish (justifies ADR-137) | LLM |
 | 139 | Averaged validation of the deepseek default | `node --experimental-strip-types bench/experiments/swe-default-validation.mjs` | `results/swe-default-validation.json` | deepseek/searchreplace 3.0/3 sd0 vs gemini 2.25/3 sd0.43 (n=4) — default change validated; optimum is also most stable | LLM |
+| 140 | Diversity+crossover+averaging assembles the optimum (capstone) | `node --experimental-strip-types bench/experiments/swe-evolve-mapelites.mjs` | `results/swe-evolve-mapelites.json` | per-model MAP-Elites preserves deepseek gene → crossover assembles deepseek/searchreplace (3/3 sd0) that naive 136/137 missed; resolve saturates → cost tie-break (135) singles it out | LLM |
 
 DRACO (`results/draco-quality-cost-frontier.json`, ADR-037–040 lineage) and the
 human-readable summary (`results/RESULTS.md`) accompany these.

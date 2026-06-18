@@ -1,0 +1,82 @@
+{
+  "experiment": "ADR-140 — MAP-Elites (per-model niches) + crossover + averaged fitness",
+  "corpus": [
+    "kernel-js",
+    "create-agent-harness",
+    "vertical-base"
+  ],
+  "runsAveraged": 3,
+  "genome": "model × patchMode (maxAttempts=2)",
+  "nicheElites": [
+    "gemini-2.5-flash/wholefile:3/3",
+    "deepseek-chat/searchreplace:3/3",
+    "gpt-5-mini/searchreplace:3/3"
+  ],
+  "fitnessLandscape": [
+    {
+      "genome": "gemini-2.5-flash/wholefile",
+      "meanResolved": 3,
+      "runs": [
+        "3/3",
+        "3/3",
+        "3/3"
+      ]
+    },
+    {
+      "genome": "gpt-5-mini/searchreplace",
+      "meanResolved": 3,
+      "runs": [
+        "3/3",
+        "3/3",
+        "3/3"
+      ]
+    },
+    {
+      "genome": "gpt-5-mini/wholefile",
+      "meanResolved": 3,
+      "runs": [
+        "3/3",
+        "3/3",
+        "3/3"
+      ]
+    },
+    {
+      "genome": "deepseek-chat/searchreplace",
+      "meanResolved": 3,
+      "runs": [
+        "3/3",
+        "3/3",
+        "3/3"
+      ]
+    },
+    {
+      "genome": "deepseek-chat/wholefile",
+      "meanResolved": 2.33,
+      "runs": [
+        "2/3",
+        "3/3",
+        "2/3"
+      ]
+    },
+    {
+      "genome": "gemini-2.5-flash/searchreplace",
+      "meanResolved": 2,
+      "runs": [
+        "2/3",
+        "2/3",
+        "2/3"
+      ]
+    }
+  ],
+  "globalBest": {
+    "genome": "gemini-2.5-flash/wholefile",
+    "meanResolved": 3,
+    "runs": [
+      "3/3",
+      "3/3",
+      "3/3"
+    ]
+  },
+  "reachedGlobalOptimum": false,
+  "verdict": "global best 'gemini-2.5-flash/wholefile' (3/3) — report as measured"
+}
