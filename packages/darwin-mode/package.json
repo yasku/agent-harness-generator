@@ -1,6 +1,6 @@
 {
   "name": "@metaharness/darwin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Darwin Mode (ADR-070…075) — bounded, empirical, population-based self-improvement of an agent harness. Generate child harness variants, sandbox-score them, archive the lineage, and promote only measured, safe wins. The model is frozen; the harness evolves. Dependency-free (Node built-ins only).",
   "type": "module",
   "main": "./dist/index.js",
