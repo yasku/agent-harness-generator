@@ -22,7 +22,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const argv = (f, d) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : d; };
 const onlyInstance = argv('--instance', null);
-const K = +argv('--k', 12);
+const K = +argv('--k', 15);
 const MODEL = argv('--model', 'deepseek/deepseek-chat');
 const rel = (p) => (isAbsolute(p) ? p : join(HERE, p));
 const OUT = rel(argv('--out', 'predictions.jsonl'));
@@ -39,6 +39,33 @@ const base = await generateBaselineHarness(await profileRepo(hr), mkdtempSync(jo
 const { buildContext } = await import(`${base.dir}/context_builder.ts`);
 
 const g = (cwd, c) => execSync(c, { cwd, stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
+
+// Apply a search/replace edit. Exact match first; then a WHITESPACE-TOLERANT fallback that
+// matches a contiguous line-run by trimmed content and re-indents the replacement by the
+// indentation delta — critical for Python, where the LLM's SEARCH text is often slightly
+// mis-indented (ADR-142 stage B1: a big share of the 48% empty-patch rate). Returns new
+// content or null if no match.
+function applyEdit(content, search, replace) {
+  if (search.length && content.includes(search)) return content.replace(search, replace);
+  const cl = content.split('\n'); const sl = search.split('\n');
+  while (sl.length && sl[sl.length - 1].trim() === '') sl.pop();
+  while (sl.length && sl[0].trim() === '') sl.shift();
+  if (!sl.length) return null;
+  const norm = (s) => s.replace(/\s+/g, ' ').trim();
+  for (let i = 0; i + sl.length <= cl.length; i++) {
+    let ok = true; for (let j = 0; j < sl.length; j++) { if (norm(cl[i + j]) !== norm(sl[j])) { ok = false; break; } }
+    if (!ok) continue;
+    const indOf = (s) => (s.match(/^[ \t]*/) || [''])[0];
+    const delta = indOf(cl[i]).length - indOf(sl[0]).length;
+    const rl = replace.split('\n').map((line) => {
+      if (!line.trim()) return line;
+      if (delta >= 0) return ' '.repeat(delta) + line;
+      const lead = indOf(line).length; return line.slice(Math.min(-delta, lead));
+    });
+    return [...cl.slice(0, i), ...rl, ...cl.slice(i + sl.length)].join('\n');
+  }
+  return null;
+}
 function fetchRepo(repo, sha) {
   const work = mkdtempSync(join(tmpdir(), 'sbrepo-'));
   g(work, 'git init -q'); g(work, `git remote add origin https://github.com/${repo}.git`);
@@ -67,7 +94,7 @@ for (const inst of manifest) {
     const raw = j.choices?.[0]?.message?.content ?? '';
     if (process.env.SWE_RAWDUMP) writeFileSync(rel(`raw-${inst.instance_id}.txt`), raw);
     let applied = 0; const re = /FILE:\s*([^\n]+)\n<<<SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>REPLACE/g;
-    for (let m; (m = re.exec(raw)); ) { const f = m[1].trim(); if (!selected.includes(f)) continue; const fp = join(work, f); if (!existsSync(fp)) continue; const cur = readFileSync(fp, 'utf8'); if (m[2].length && cur.includes(m[2])) { writeFileSync(fp, cur.replace(m[2], m[3])); applied++; } }
+    for (let m; (m = re.exec(raw)); ) { const f = m[1].trim(); if (!selected.includes(f)) continue; const fp = join(work, f); if (!existsSync(fp)) continue; const cur = readFileSync(fp, 'utf8'); const next = applyEdit(cur, m[2], m[3]); if (next && next !== cur) { writeFileSync(fp, next); applied++; } }
     row.blocksApplied = applied;
     const diff = applied ? g(work, 'git diff').toString() : '';
     row.patchBytes = diff.length;
