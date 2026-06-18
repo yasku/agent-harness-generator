@@ -1,0 +1,61 @@
+{
+  "experiment": "ADR-146 diagnostic — why patches are empty (selection vs patch failure)",
+  "n": 300,
+  "emptyPatch": 200,
+  "multiFileGold": 0,
+  "selectionRecall_all": 44.7,
+  "emptyPatch_breakdown": {
+    "total": 200,
+    "selectionMiss": 130,
+    "patchMiss": 70,
+    "selectionMissPct": 65
+  },
+  "patchedAndSelected": 64,
+  "examples": {
+    "emptyButSelected": [
+      "astropy__astropy-14365",
+      "django__django-10924",
+      "django__django-11019",
+      "django__django-11848",
+      "django__django-12284"
+    ],
+    "selMissEmpty": [
+      {
+        "id": "astropy__astropy-14995",
+        "gold": [
+          "astropy/nddata/mixins/ndarithmetic.py"
+        ],
+        "files": 481
+      },
+      {
+        "id": "astropy__astropy-7746",
+        "gold": [
+          "astropy/wcs/wcs.py"
+        ],
+        "files": 396
+      },
+      {
+        "id": "django__django-11564",
+        "gold": [
+          "django/conf/__init__.py"
+        ],
+        "files": 824
+      },
+      {
+        "id": "django__django-11583",
+        "gold": [
+          "django/utils/autoreload.py"
+        ],
+        "files": 823
+      },
+      {
+        "id": "django__django-11620",
+        "gold": [
+          "django/views/debug.py"
+        ],
+        "files": 823
+      }
+    ]
+  },
+  "verdict": "SELECTION is the dominant lever: 130/200 empty patches never had the gold file selected (localization on huge repos). Fix = better file localization."
+}
