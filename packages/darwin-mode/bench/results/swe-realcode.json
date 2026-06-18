@@ -1,0 +1,12 @@
+{
+  "model": "google/gemini-2.5-flash",
+  "realCandidateFiles": 21,
+  "buggyFileRankedTop": true,
+  "llmChoseFile": "pareto.ts",
+  "choseCorrect": true,
+  "beforePass": false,
+  "afterPass": true,
+  "verdict": "FIXED (real package code: contextBuilder-selected, LLM-reasoned, real test passes)",
+  "tokens": 9848,
+  "cost_usd": 0.004083552
+}
