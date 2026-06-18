@@ -1,0 +1,21 @@
+{
+  "experiment": "ADR-124 — real `git apply` unified-diff patch primitive (ADR-098 step-3 prep)",
+  "model": "google/gemini-2.5-flash",
+  "FAIL_TO_PASS": 4,
+  "PASS_TO_PASS": 18,
+  "armGOLD_unifiedDiff": {
+    "patchApplied": true,
+    "resolved": true,
+    "f2p": "4/4",
+    "p2p": "18/18"
+  },
+  "armLLM_unifiedDiff": {
+    "patchApplied": false,
+    "resolved": false,
+    "diffHead": "--- a/src/pareto.ts ⏎ +++ b/src/pareto.ts ⏎ @@ -1,18 +1,20 @@ ⏎  // SPDX-License-Identifier: MIT",
+    "applyError": "error: patch failed: src/pareto.ts:1",
+    "tokens": 15815,
+    "cost_usd": 0.0025445079
+  },
+  "verdict": "PRIMITIVE VALIDATED: gold unified diff git-applies and RESOLVES under the real criterion; real LLM diff failed to apply (honest)"
+}

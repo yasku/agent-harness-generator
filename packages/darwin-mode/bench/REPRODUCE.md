@@ -37,6 +37,7 @@ LLM, deterministic). **LLM** = one or more live OpenRouter calls (set
 | 121 | …verified by the package's own vitest suite | `node --experimental-strip-types bench/experiments/swe-realtests.mjs` | `results/swe-realtests.json` | same loop, oracle = real committed `pareto.test.ts` (vitest) FAIL→PASS, $0.004 | LLM |
 | 122 | Long-horizon validation harness (ADR-098 step 1) | `node --experimental-strip-types bench/experiments/validation-harness.mjs` | `results/validation-harness.json` | 50-step growing repo: relevance-ranked holds the thread 100%, naive recency 52% (lost at step 26) | det |
 | 123 | SWE-bench runner adapter + real resolved criterion (ADR-098 step 2) | `node --experimental-strip-types bench/experiments/swe-bench-adapter.mjs` | `results/swe-bench-adapter.json` | auto-derived F2P=4/P2P=18; real LLM fix RESOLVED (4/4,18/18); test-gaming patch UNRESOLVED (1/4) | LLM |
+| 124 | `git apply` patch primitive (ADR-098 step-3 prep) | `node --experimental-strip-types bench/experiments/swe-bench-gitapply.mjs` | `results/swe-bench-gitapply.json` | gold unified diff applies+RESOLVES (4/4,18/18); raw LLM diff corrupt → whole-file primitive preferred | LLM |
 
 DRACO (`results/draco-quality-cost-frontier.json`, ADR-037–040 lineage) and the
 human-readable summary (`results/RESULTS.md`) accompany these.
