@@ -1,11 +1,13 @@
-# create-agent-harness
+# metaharness
 
 Scaffold your own focused AI agent harness — like [ruflo](https://github.com/ruvnet/ruflo), uniquely yours.
+
+> Published as **`metaharness`** (the `metaharness` and `harness` CLIs). Earlier versions were published as `create-agent-harness`.
 
 ## Quick start
 
 ```bash
-npx create-agent-harness my-bot
+npx metaharness my-bot
 ```
 
 You'll be prompted for template, host, description. Out comes a complete npm package ready to `npm publish`.
@@ -13,7 +15,7 @@ You'll be prompted for template, host, description. Out comes a complete npm pac
 ## Non-interactive
 
 ```bash
-npx create-agent-harness my-legal-bot \
+npx metaharness my-legal-bot \
   --template vertical:legal \
   --host claude-code \
   --description "Contract redline + risk rating"
@@ -59,7 +61,7 @@ harness help
 If you've been using ruflo and want your own focused harness from it:
 
 ```bash
-npx create-agent-harness --from-existing ./
+npx metaharness --from-existing ./
 ```
 
 Lifts agents/skills/commands, rewrites every `ruflo` / `claude-flow` reference, preserves attribution blocks marked with `<!-- ruflo-attribution-block -->`.
