@@ -30,6 +30,9 @@ LLM, deterministic). **LLM** = one or more live OpenRouter calls (set
 | 114 | Diversity advantage substrate-dependent | `node --experimental-strip-types bench/experiments/real-substrate-deception.mjs` | `results/real-substrate-deception.json` | agent: greedy 3/3, diversity 2/3 (not replicated) | agent |
 | 115 | Crossover ablation | `node --experimental-strip-types bench/experiments/crossover-ablation.mjs` | `results/crossover-ablation.json` | crossover-off crosses 2/2 → archive does the work | agent |
 | 116 | Retention ablation | `node --experimental-strip-types bench/experiments/retention-ablation.mjs` | `results/retention-ablation.json` | retention helps (2/2 vs 1/2); inconclusive at n=2 | agent |
+| 117 | Real multi-file SWE nucleus | `node --experimental-strip-types bench/experiments/swe-nucleus.mjs` | `results/swe-nucleus.json` | real ctxb selects → real LLM reasons over real code → real test FIXED | LLM |
+| 118 | SWE suite generalizes | `node --experimental-strip-types bench/experiments/swe-suite.mjs` | `results/swe-suite.json` | 5/5 varied real bugs fixed, correct file chosen each, $0.001 | LLM |
+| 119 | Multi-domain evolution | `node --experimental-strip-types bench/experiments/swe-evolution.mjs` | `results/swe-evolution.json` | evolution lifts real-test pass-rate 0/5→5/5 (window 30→50), 5 cached calls | LLM |
 
 DRACO (`results/draco-quality-cost-frontier.json`, ADR-037–040 lineage) and the
 human-readable summary (`results/RESULTS.md`) accompany these.
