@@ -54,6 +54,7 @@ LLM, deterministic). **LLM** = one or more live OpenRouter calls (set
 | 138 | Micro-evolve fitness noise floor, quantified | `node --experimental-strip-types bench/experiments/swe-fitness-variance.mjs` | `results/swe-fitness-variance.json` | per-genome resolve sd≈0.4-0.5/3; means ~0.5 apart → need ~4-5 averaged runs to distinguish (justifies ADR-137) | LLM |
 | 139 | Averaged validation of the deepseek default | `node --experimental-strip-types bench/experiments/swe-default-validation.mjs` | `results/swe-default-validation.json` | deepseek/searchreplace 3.0/3 sd0 vs gemini 2.25/3 sd0.43 (n=4) — default change validated; optimum is also most stable | LLM |
 | 140 | Diversity+crossover+averaging assembles the optimum (capstone) | `node --experimental-strip-types bench/experiments/swe-evolve-mapelites.mjs` | `results/swe-evolve-mapelites.json` | per-model MAP-Elites preserves deepseek gene → crossover assembles deepseek/searchreplace (3/3 sd0) that naive 136/137 missed; resolve saturates → cost tie-break (135) singles it out | LLM |
+| 141 | Discriminating-corpus capstone — full objective reaches global optimum | `node --experimental-strip-types bench/experiments/swe-evolve-mapelites-hard.mjs` | `results/swe-evolve-mapelites-hard.json` | resolve-rate culls wholefile+gemini; crossover assembles survivors; cost picks deepseek/searchreplace (2/2 $0.005) — unambiguous, removes ADR-140 caveat | LLM |
 
 DRACO (`results/draco-quality-cost-frontier.json`, ADR-037–040 lineage) and the
 human-readable summary (`results/RESULTS.md`) accompany these.

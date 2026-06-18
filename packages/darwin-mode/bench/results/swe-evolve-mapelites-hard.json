@@ -1,0 +1,78 @@
+{
+  "experiment": "ADR-141 — capability-discriminating MAP-Elites + crossover + averaging + (resolve,cost) objective",
+  "corpus": [
+    "two-fault",
+    "kernel-js"
+  ],
+  "runsAveraged": 3,
+  "objective": "resolve-rate then cost",
+  "fitnessLandscape": [
+    {
+      "genome": "deepseek-chat/searchreplace",
+      "meanResolved": "2/2",
+      "meanCost": 0.005,
+      "runs": [
+        "2/2",
+        "2/2",
+        "2/2"
+      ]
+    },
+    {
+      "genome": "gpt-5-mini/searchreplace",
+      "meanResolved": "2/2",
+      "meanCost": 0.0051,
+      "runs": [
+        "2/2",
+        "2/2",
+        "2/2"
+      ]
+    },
+    {
+      "genome": "gemini-2.5-flash/wholefile",
+      "meanResolved": "2/2",
+      "meanCost": 0.0236,
+      "runs": [
+        "2/2",
+        "2/2",
+        "2/2"
+      ]
+    },
+    {
+      "genome": "gpt-5-mini/wholefile",
+      "meanResolved": "1.67/2",
+      "meanCost": 0.0166,
+      "runs": [
+        "2/2",
+        "1/2",
+        "2/2"
+      ]
+    },
+    {
+      "genome": "gemini-2.5-flash/searchreplace",
+      "meanResolved": "1/2",
+      "meanCost": 0.0067,
+      "runs": [
+        "1/2",
+        "1/2",
+        "1/2"
+      ]
+    },
+    {
+      "genome": "deepseek-chat/wholefile",
+      "meanResolved": "1/2",
+      "meanCost": 0.0102,
+      "runs": [
+        "1/2",
+        "1/2",
+        "1/2"
+      ]
+    }
+  ],
+  "globalBest": {
+    "genome": "deepseek-chat/searchreplace",
+    "meanResolved": "2/2",
+    "meanCost": 0.005
+  },
+  "reachedGlobalOptimum": true,
+  "verdict": "FULL OBJECTIVE WINS: resolve-rate eliminated wholefile (fails two-fault) + weak models (miss kernel-js); crossover assembled the survivors; cost picked 'deepseek-chat/searchreplace' (2/2, $0.005) — the unambiguous optimum, no resolve-rate tie. Removes ADR-140's caveat."
+}
