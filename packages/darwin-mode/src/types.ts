@@ -132,6 +132,14 @@ export interface EvolutionConfig {
   /** Deterministic seed for mutation selection (reproducibility). Default 0. */
   seed?: number;
   /**
+   * Tie-break policy when variants share the top finalScore (ADR-072's scorer
+   * ceilings at 0.985, so ties are the common case). 'insertion' (default) is
+   * fully reproducible — earliest insertion wins. 'faster' breaks ties by lowest
+   * mean trace wall-clock, giving selection a real efficiency gradient; it is
+   * NOT reproducible by construction (wall-clock), so it is strictly opt-in.
+   */
+  tieBreaker?: 'insertion' | 'faster';
+  /**
    * Pluggable code generator (ADR-071). Default is the DeterministicMutator;
    * pass an LLM-backed one (e.g. OpenRouterMutator) to evolve via a model — it
    * still passes the same validateGeneratedCode safety gate.

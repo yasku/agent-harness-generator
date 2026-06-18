@@ -18,6 +18,7 @@ import { profileRepo } from './repo_profiler.js';
 import { runVariantTasks } from './sandbox.js';
 import { scoreVariant } from './scorer.js';
 import type {
+  ArchiveRecord,
   EvolutionConfig,
   EvolutionResult,
   HarnessVariant,
@@ -85,6 +86,42 @@ async function evaluateVariant(
 /** Cost proxy for the breaker: cumulative variant-seconds in a generation. */
 function traceSeconds(traces: RunTrace[]): number {
   return traces.reduce((s, t) => s + t.durationMs, 0) / 1000;
+}
+
+/** Mean wall-clock per trace; `Infinity` when a variant has no traces (sinks last). */
+function meanDurationMs(traces: RunTrace[]): number {
+  if (traces.length === 0) return Infinity;
+  return traces.reduce((s, t) => s + t.durationMs, 0) / traces.length;
+}
+
+/**
+ * Among scored records sharing the TOP finalScore, return the most efficient
+ * (lowest mean trace wall-clock). Pure: caller supplies the per-variant traces.
+ * Returns `null` only when no record is scored. This is the 'faster' tie-break
+ * (ADR-072 scorer is ceiling-bound, so the efficiency signal lives here, not in
+ * finalScore). NOT reproducible by construction — opt-in via config.tieBreaker.
+ */
+export function pickEfficientWinner(
+  records: ArchiveRecord[],
+  tracesById: Map<string, RunTrace[]>,
+): ArchiveRecord | null {
+  let top = -Infinity;
+  for (const r of records) {
+    if (r.score && r.score.finalScore > top) top = r.score.finalScore;
+  }
+  if (top === -Infinity) return null;
+  const EPS = 1e-9;
+  let winner: ArchiveRecord | null = null;
+  let bestMs = Infinity;
+  for (const r of records) {
+    if (!r.score || Math.abs(r.score.finalScore - top) > EPS) continue;
+    const ms = meanDurationMs(tracesById.get(r.variant.id) ?? []);
+    if (winner === null || ms < bestMs) {
+      winner = r;
+      bestMs = ms;
+    }
+  }
+  return winner;
 }
 
 async function commit(
@@ -180,7 +217,12 @@ export async function evolve(config: EvolutionConfig): Promise<EvolutionResult> 
     if (parents.length === 0) break;
   }
 
-  const winner = archive.best();
+  // Default 'insertion' (reproducible: archive.best breaks ties by insertion).
+  // Opt-in 'faster' re-breaks top-finalScore ties by efficiency (ADR-072 ceiling).
+  const winner =
+    config.tieBreaker === 'faster'
+      ? pickEfficientWinner(archive.all(), tracesById)
+      : archive.best();
   const winnerLineage = winner ? archive.lineageOf(winner.variant.id) : [];
 
   await writeFile(
