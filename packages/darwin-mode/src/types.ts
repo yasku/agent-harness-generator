@@ -147,9 +147,12 @@ export interface EvolutionConfig {
    * collapsing onto one at the 0.985 ceiling. 'behavioral-diversity' (ADR-091)
    * bins by HYPERBOLIC behavioural niche (Poincaré-ball phenotype from run
    * traces) so diversity tracks how a variant *behaves*, not which file it
-   * touched. All three are deterministic.
+   * touched. 'niche-steering' (ADR-092) goes further — actively seeds the next
+   * generation from survivors nearest an UNDER-EXPLORED region of the Poincaré
+   * ball (preferring the high-complexity frontier), navigating the manifold
+   * rather than just maintaining spread. All are deterministic.
    */
-  selection?: 'score' | 'quality-diversity' | 'behavioral-diversity';
+  selection?: 'score' | 'quality-diversity' | 'behavioral-diversity' | 'niche-steering';
   /**
    * Opt-in genetic crossover (ADR-089). When true and a generation has ≥2
    * parents, the first child of each parent recombines that parent's surfaces

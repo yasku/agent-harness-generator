@@ -22,7 +22,12 @@ import {
 import { profileRepo } from './repo_profiler.js';
 import { runVariantTasks } from './sandbox.js';
 import { scoreVariant } from './scorer.js';
-import { behavioralNiche } from './phenotype.js';
+import {
+  behavioralNiche,
+  embedTraces,
+  nearestToTarget,
+  underExploredTarget,
+} from './phenotype.js';
 import { evaluateChildAgainstParent } from './bench/runner.js';
 import { admitWithStatisticalGate, makeRiskBudget } from './bench/risk.js';
 import type { RiskBudget } from './bench/risk.js';
@@ -115,6 +120,31 @@ function traceSeconds(traces: RunTrace[]): number {
 function meanDurationMs(traces: RunTrace[]): number {
   if (traces.length === 0) return Infinity;
   return traces.reduce((s, t) => s + t.durationMs, 0) / traces.length;
+}
+
+/**
+ * Active niche steering (ADR-092): seed the next generation from the scored
+ * variants nearest an UNDER-EXPLORED region of the Poincaré ball, so their
+ * offspring drive toward it. Returns `[]` when there is no hole or no candidate,
+ * letting the caller fall back to behavioural-diversity selection.
+ */
+function steerTowardHole(
+  archive: Archive,
+  tracesById: Map<string, RunTrace[]>,
+  limit: number,
+): HarnessVariant[] {
+  const scored = archive.all().filter((r) => r.score !== null);
+  if (scored.length === 0) return [];
+  const occupied = new Set(scored.map((r) => behavioralNiche(tracesById.get(r.variant.id) ?? [])));
+  const target = underExploredTarget(occupied);
+  if (target === null) return []; // manifold fully occupied — nothing to steer toward
+  const candidates = scored.map((r) => ({
+    id: r.variant.id,
+    embed: embedTraces(tracesById.get(r.variant.id) ?? []),
+  }));
+  const nearestIds = nearestToTarget(candidates, target.centroid, limit);
+  const byId = new Map(scored.map((r) => [r.variant.id, r.variant]));
+  return nearestIds.map((id) => byId.get(id)!).filter(Boolean);
 }
 
 /**
@@ -316,12 +346,22 @@ export async function evolve(config: EvolutionConfig): Promise<EvolutionResult> 
     // sample the whole archive so we explore sideways instead of dead-ending.
     // Opt-in MAP-Elites (config.selection): the stall fallback draws elites from
     // DISTINCT surface niches so exploration stays diverse at the score ceiling.
-    const stallFallback =
-      config.selection === 'behavioral-diversity'
-        ? archive.selectElites(2, (v) => behavioralNiche(tracesById.get(v.id) ?? []))
-        : config.selection === 'quality-diversity'
-          ? archive.selectElites(2)
-          : archive.selectParents(2);
+    let stallFallback: HarnessVariant[];
+    if (config.selection === 'niche-steering') {
+      // Steer toward an under-explored Poincaré region; if the manifold is full
+      // (no hole), degrade to behavioural-diversity elites.
+      const steered = steerTowardHole(archive, tracesById, 2);
+      stallFallback =
+        steered.length > 0
+          ? steered
+          : archive.selectElites(2, (v) => behavioralNiche(tracesById.get(v.id) ?? []));
+    } else if (config.selection === 'behavioral-diversity') {
+      stallFallback = archive.selectElites(2, (v) => behavioralNiche(tracesById.get(v.id) ?? []));
+    } else if (config.selection === 'quality-diversity') {
+      stallFallback = archive.selectElites(2);
+    } else {
+      stallFallback = archive.selectParents(2);
+    }
     parents = promoted.length > 0 ? promoted : stallFallback;
     if (parents.length === 0) break;
   }

@@ -139,3 +139,61 @@ export function behavioralNiche(traces: RunTrace[], shells = 4, sectors = 6): st
   const sector = Math.min(sectors - 1, Math.floor((theta / (2 * Math.PI)) * sectors));
   return `h${shell}_s${sector}`;
 }
+
+// ── Active niche steering (ADR-092) — navigate the behavioural manifold ───────
+//
+// Diversity selection (ADR-091) MAINTAINS spread. Steering actively DRIVES the
+// population toward under-explored regions of the Poincaré ball: find a density
+// hole (preferring the high-radius "complex / deep-thinking" frontier), then seed
+// the next generation from the survivors nearest that hole, so their offspring
+// land in or near it. The whole mechanism is closed-form + deterministic.
+
+/** Geometric centroid of niche cell `(shell, sector)` in the Poincaré disk. */
+export function nicheCentroid(shell: number, sector: number, shells = 4, sectors = 6): [number, number] {
+  const r = (shell + 0.5) / shells;
+  const theta = ((sector + 0.5) / sectors) * 2 * Math.PI;
+  return [r * Math.cos(theta), r * Math.sin(theta)];
+}
+
+/**
+ * Find an under-explored target niche: scan shells from the OUTSIDE in (prefer
+ * the high-radius complexity frontier, per open-endedness) and return the first
+ * unoccupied cell's id + centroid. Returns `null` when every niche is occupied.
+ */
+export function underExploredTarget(
+  occupied: ReadonlySet<string>,
+  shells = 4,
+  sectors = 6,
+): { niche: string; centroid: [number, number] } | null {
+  for (let shell = shells - 1; shell >= 0; shell--) {
+    for (let sector = 0; sector < sectors; sector++) {
+      const niche = `h${shell}_s${sector}`;
+      if (!occupied.has(niche)) return { niche, centroid: nicheCentroid(shell, sector, shells, sectors) };
+    }
+  }
+  return null;
+}
+
+/**
+ * Rank candidates by Poincaré distance to `target` (ascending) and return the
+ * nearest `limit` ids — the survivors whose offspring are most likely to reach
+ * the under-explored region. Ties break by the candidate array order (the caller
+ * supplies a deterministic order, e.g. archive insertion).
+ */
+export function nearestToTarget(
+  candidates: ReadonlyArray<{ id: string; embed: readonly [number, number] }>,
+  target: readonly [number, number],
+  limit: number,
+): string[] {
+  if (limit <= 0) return [];
+  return candidates
+    .map((c, i) => ({ id: c.id, d: poincareDistance(c.embed, target), i }))
+    .sort((a, b) => a.d - b.d || a.i - b.i)
+    .slice(0, limit)
+    .map((c) => c.id);
+}
+
+/** Convenience: the Poincaré embedding of a variant straight from its traces. */
+export function embedTraces(traces: RunTrace[]): [number, number] {
+  return poincareEmbed(behaviorFeatures(traces));
+}

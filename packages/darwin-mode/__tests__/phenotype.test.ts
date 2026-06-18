@@ -10,6 +10,9 @@ import {
   poincareEmbed,
   poincareDistance,
   behavioralNiche,
+  nicheCentroid,
+  underExploredTarget,
+  nearestToTarget,
 } from '../src/phenotype.js';
 import type { RunTrace } from '../src/types.js';
 
@@ -75,5 +78,45 @@ describe('behavioralNiche', () => {
 
   it('empty traces map to a stable origin niche', () => {
     expect(behavioralNiche([])).toBe(behavioralNiche([]));
+  });
+});
+
+describe('active niche steering (ADR-092)', () => {
+  it('nicheCentroid lands inside the cell it names', () => {
+    const shells = 4, sectors = 6;
+    for (let s = 0; s < shells; s++) {
+      for (let k = 0; k < sectors; k++) {
+        const [x, y] = nicheCentroid(s, k, shells, sectors);
+        const r = Math.hypot(x, y);
+        expect(Math.floor(r * shells)).toBe(s); // back-maps to the same shell
+        expect(r).toBeLessThan(1);
+      }
+    }
+  });
+
+  it('underExploredTarget prefers the high-radius (complexity) frontier', () => {
+    // Occupy everything EXCEPT one outer cell and one inner cell.
+    const shells = 4, sectors = 6;
+    const all: string[] = [];
+    for (let s = 0; s < shells; s++) for (let k = 0; k < sectors; k++) all.push(`h${s}_s${k}`);
+    const occupied = new Set(all.filter((n) => n !== 'h3_s2' && n !== 'h0_s4'));
+    const target = underExploredTarget(occupied, shells, sectors);
+    expect(target!.niche).toBe('h3_s2'); // outermost hole chosen over the inner one
+  });
+
+  it('underExploredTarget returns null when the manifold is full', () => {
+    const shells = 2, sectors = 2;
+    const occupied = new Set(['h0_s0', 'h0_s1', 'h1_s0', 'h1_s1']);
+    expect(underExploredTarget(occupied, shells, sectors)).toBeNull();
+  });
+
+  it('nearestToTarget returns the candidates closest in Poincaré distance', () => {
+    const target: [number, number] = [0.8, 0];
+    const candidates = [
+      { id: 'far', embed: [0.0, 0.0] as [number, number] },
+      { id: 'near', embed: [0.75, 0.0] as [number, number] },
+      { id: 'mid', embed: [0.4, 0.0] as [number, number] },
+    ];
+    expect(nearestToTarget(candidates, target, 2)).toEqual(['near', 'mid']);
   });
 });
