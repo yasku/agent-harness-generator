@@ -31,22 +31,18 @@ per-variant `npm` startup. Conclusion: concurrency is real and bounded.
 
 ## 2. `mapLimit` width bound + order (`mapLimit.test.ts`)
 
-`mapLimit` is **not exported** from `src/evolve.ts`, and `src/` must not change,
-so the invariants are checked two ways:
+`mapLimit` is now **exported** from `src/evolve.ts`, so the invariants are
+checked directly on the primitive plus end-to-end:
 
-- **Unit (algorithm):** a verbatim copy of `src/evolve.ts`'s `mapLimit` is driven
-  with an in-flight counter test double. With 13 items at limit 4 the observed
-  max in-flight is exactly 4 (saturates, never exceeds), and results come back in
-  input order (`results[i] === fn(items[i])`). Width also clamps to item count
-  when `limit > items`.
+- **Unit (primitive):** the real `mapLimit` is driven with an in-flight counter
+  test double. With 13 items at limit 4 the observed max in-flight is exactly 4
+  (saturates, never exceeds), and results come back in input order
+  (`results[i] === fn(items[i])`). Width also clamps to item count when
+  `limit > items`.
 - **End-to-end (real path):** `evolve` runs 6 children at `concurrency=3` against
   a `marker.cjs` testCommand that appends begin/end timestamps around an ~80 ms
   sleep. Replaying the markers, observed max overlap = **3**, i.e. `1 < overlap ≤
   concurrency` — real overlap, never exceeding the configured width.
-
-> Note for the orchestrator: exporting `mapLimit` (or a `__test__` re-export)
-> would let the width bound be asserted on the primitive directly rather than
-> inferred from sandbox markers. Not required for correctness.
 
 ## 3. Resource bounds hold (`bounds.perf.test.ts`)
 

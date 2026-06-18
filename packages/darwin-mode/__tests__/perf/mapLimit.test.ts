@@ -3,56 +3,32 @@
 // `mapLimit` invariants: (1) never more than `concurrency` tasks in flight at
 // once, and (2) results preserve input order.
 //
-// `mapLimit` is NOT exported from src/evolve.ts, and src/ must not be modified.
-// So we verify the two properties as follows:
+// `mapLimit` is now exported from src/evolve.ts, so we assert its two invariants
+// directly on the primitive:
 //
-//   - ORDER + WIDTH (unit): a faithful copy of the SAME bounded-pool algorithm
-//     from src/evolve.ts is exercised with an in-flight counter test double.
-//     This proves the algorithm caps concurrency at `limit` and writes
-//     `results[i] = fn(items[i])` (order-preserving) by construction.
+//   - ORDER + WIDTH (unit): drive the REAL `mapLimit` with an in-flight counter
+//     test double — proves it caps concurrency at `limit` and writes
+//     `results[i] = fn(items[i])` (order-preserving).
 //   - WIDTH (end-to-end): drive the REAL `evolve` with a testCommand that writes
 //     a begin/end marker around a short sleep; replaying the markers reconstructs
 //     the max number of simultaneously-running variant evaluations and asserts it
 //     overlaps (>1) yet never exceeds the configured `concurrency`.
-//
-// Recorded in PERF.md: exporting `mapLimit` (or a test-only re-export) would let
-// us assert the width bound on the primitive directly rather than inferring it.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { evolve } from '../../src/evolve.js';
+import { evolve, mapLimit } from '../../src/evolve.js';
 import type { EvolutionConfig } from '../../src/types.js';
 
-// ── A verbatim copy of src/evolve.ts `mapLimit` (kept in sync intentionally). ──
-async function mapLimitRef<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T, index: number) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const width = Math.max(1, Math.min(limit, items.length));
-  const workers = Array.from({ length: width }, async () => {
-    for (;;) {
-      const i = next++;
-      if (i >= items.length) break;
-      results[i] = await fn(items[i], i);
-    }
-  });
-  await Promise.all(workers);
-  return results;
-}
-
-describe('mapLimit algorithm — width bound + order (unit)', () => {
+describe('mapLimit primitive — width bound + order (unit)', () => {
   it('never exceeds the concurrency width and preserves input order', async () => {
     const items = Array.from({ length: 13 }, (_, i) => i);
     const limit = 4;
     let inFlight = 0;
     let maxInFlight = 0;
 
-    const out = await mapLimitRef(items, limit, async (n) => {
+    const out = await mapLimit(items, limit, async (n) => {
       inFlight++;
       maxInFlight = Math.max(maxInFlight, inFlight);
       await new Promise((r) => setTimeout(r, 5)); // let overlap develop
@@ -69,7 +45,7 @@ describe('mapLimit algorithm — width bound + order (unit)', () => {
     const items = [0, 1];
     let inFlight = 0;
     let maxInFlight = 0;
-    await mapLimitRef(items, 8, async (n) => {
+    await mapLimit(items, 8, async (n) => {
       inFlight++;
       maxInFlight = Math.max(maxInFlight, inFlight);
       await new Promise((r) => setTimeout(r, 5));

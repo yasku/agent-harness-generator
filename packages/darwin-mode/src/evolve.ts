@@ -29,8 +29,8 @@ import type {
 const DEFAULT_CONCURRENCY = 4;
 const DEFAULT_TASK_TIMEOUT_MS = 120_000;
 
-/** Run async `fn` over `items` with at most `limit` in flight at once. */
-async function mapLimit<T, R>(
+/** Run async `fn` over `items` with at most `limit` in flight at once. Order-preserving. */
+export async function mapLimit<T, R>(
   items: T[],
   limit: number,
   fn: (item: T, index: number) => Promise<R>,

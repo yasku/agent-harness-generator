@@ -69,21 +69,16 @@ describe('scoreVariant — weighted base math', () => {
     expect(card.testPassRate).toBeCloseTo(0.5, 10);
   });
 
-  it('latencyEfficiency = clamp(1 - avgDuration/timeout)', () => {
-    const card = scoreVariant(
-      'v',
-      [trace({ durationMs: 30_000 }), trace({ durationMs: 90_000 })],
-      null,
-      0.05,
-      120_000,
-    );
-    // avg = 60000, 1 - 60000/120000 = 0.5
-    expect(card.latencyEfficiency).toBeCloseTo(0.5, 10);
-  });
-
-  it('latencyEfficiency clamps to 0 when avg duration exceeds the budget', () => {
-    const card = scoreVariant('v', [trace({ durationMs: 500_000 })], null, 0.05, 120_000);
-    expect(card.latencyEfficiency).toBe(0);
+  it('latencyEfficiency is a deterministic 1.0 hook, independent of wall-clock duration', () => {
+    // At prototype level every variant runs the identical test command, so raw
+    // wall-clock is pure noise and is deliberately excluded from the score for
+    // reproducibility (ADR-075). Latency varies wildly here; the term does not.
+    const fast = scoreVariant('v', [trace({ durationMs: 1 })], null, 0.05, 120_000);
+    const slow = scoreVariant('v', [trace({ durationMs: 500_000 })], null, 0.05, 120_000);
+    expect(fast.latencyEfficiency).toBe(1);
+    expect(slow.latencyEfficiency).toBe(1);
+    // ⇒ identical finalScore regardless of timing (the reproducibility property).
+    expect(slow.finalScore).toBe(fast.finalScore);
   });
 
   it('traceQuality drops to 0.5 when a trace output exceeds 4MB', () => {

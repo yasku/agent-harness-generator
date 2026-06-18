@@ -75,8 +75,12 @@ export const BLOCKED_FILENAME_PATTERNS: readonly string[] = [
  * system, or evaluating dynamic code.
  */
 export const BLOCKED_CONTENT_PATTERNS: ReadonlyArray<{ re: RegExp; reason: string }> = [
-  { re: /process\s*\.\s*env/i, reason: 'environment access (process.env)' },
-  { re: /process\s*\.\s*binding/i, reason: 'process.binding' },
+  // Environment access — both dotted (`process.env`) and computed-member forms
+  // (`process['env']`, `process[`env`]`, `process . env`). The char class
+  // `[.[]` covers the dot and the opening bracket; `['"\x60]?` the optional quote.
+  { re: /process\s*[.[]\s*['"\x60]?\s*env/i, reason: 'environment access (process.env)' },
+  { re: /\bReflect\s*\.\s*get\s*\(\s*process/i, reason: 'environment access (Reflect.get(process))' },
+  { re: /process\s*[.[]\s*['"\x60]?\s*binding/i, reason: 'process.binding' },
   { re: /\bchild_process\b/i, reason: 'process spawning (child_process)' },
   { re: /\bexecSync\b|\bexecFileSync\b|\bspawnSync\b|\bspawn\b|\bexec\s*\(/i, reason: 'process execution' },
   { re: /\brequire\s*\(/i, reason: 'dynamic require()' },
@@ -85,11 +89,14 @@ export const BLOCKED_CONTENT_PATTERNS: ReadonlyArray<{ re: RegExp; reason: strin
   { re: /\bnew\s+Function\b/i, reason: 'new Function()' },
   { re: /\bfetch\s*\(/i, reason: 'network access (fetch)' },
   { re: /\bXMLHttpRequest\b|\bWebSocket\b/i, reason: 'network access (XHR/WebSocket)' },
-  { re: /\bnode:(fs|net|http|https|dns|tls|dgram|cluster|vm|worker_threads)\b/i, reason: 'restricted node builtin' },
-  { re: /from\s+['"](fs|net|http|https|dns|tls|dgram|cluster|vm|worker_threads)['"]/i, reason: 'restricted module import' },
+  // node: builtins, including subpaths like `node:fs/promises`.
+  { re: /\bnode:(fs|net|http|https|dns|tls|dgram|cluster|vm|worker_threads)(\/|\b)/i, reason: 'restricted node builtin' },
+  // Bare-specifier imports, including subpaths like `fs/promises`, `net/x`.
+  { re: /from\s+['"](fs|net|http|https|dns|tls|dgram|cluster|vm|worker_threads)(\/[^'"]*)?['"]/i, reason: 'restricted module import' },
   { re: /\bglobalThis\b|\b__proto__\b|\bconstructor\s*\[/i, reason: 'prototype/global escape' },
   { re: /\bcurl\b|\bwget\b|\bssh\b|\bscp\b|\bsudo\b|\bchmod\b|\bnc\s|\bnetcat\b/i, reason: 'shell command string' },
-  { re: /\brm\s+-rf\b|\brmdir\b|\bunlink\b|\brmSync\b/i, reason: 'destructive filesystem command' },
+  // Destructive fs — any `rm` with a flag OR a path (`rm -rf`, `rm -r`, `rm /etc/x`).
+  { re: /\brm\s+[-/]|\brmdir\b|\bunlink\b|\brmSync\b/i, reason: 'destructive filesystem command' },
   { re: /\bprivate_key\b|\bcredential\b|\bsecret\b|\btoken\b|BEGIN [A-Z ]*PRIVATE KEY/i, reason: 'secret handling' },
 ];
 
