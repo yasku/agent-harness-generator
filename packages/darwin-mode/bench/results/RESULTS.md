@@ -238,7 +238,7 @@ stratified-25 (the in-loop `evalOne` counter over-reported — see the disciplin
 | model (local, $0) | open-loop | + repair | patches applied |
 |---|---|---|---|
 | qwen2.5-coder:7b | 1/25 = 4.0% | 1/25 = 4.0% | 13 → 18 |
-| qwen2.5-coder:14b | *measuring* | **3/25 = 12.0%** [4.2, 30.0] | 16 |
+| qwen2.5-coder:14b | 2/25 = 8.0% [2.2, 25.0] | **3/25 = 12.0%** [4.2, 30.0] | 13 → 16 |
 | qwen2.5-coder:32b | **2/25 = 8.0%** [2.2, 25.0] | (impractical on 16 GB GPU) | 13 |
 
 **Capability scales the open-loop number** (7b 4.0% → 32b **8.0%**): the larger free local model now
@@ -268,9 +268,16 @@ in-loop counter is a progress indicator, never a reported number.
 **Open path:** a stronger *local* model (qwen-32b, gpt-oss:20b on the 48 GB Mac) where the repair
 loop has correct patches to find — testing whether the §10 hosted lift reproduces at $0.
 
-**Capability floor for repair (batch-verified, $0 local):** repair is **model-bound on the 7b**
-(4%→4%) but on the **14b reaches 3/25 = 12.0%** — exceeding the **32b open-loop (8%)** and the
-**7b repair (4%)**. So the §10/ADR-149 repair lift reproduces locally *once the model clears a
-capability floor* (~14B here): the loop needs the model to occasionally produce a correct-ish patch
-to converge toward. n=25 → wide CIs; the 14b/32b open-loop A/B is the next tightening step. In-loop
-counters over-reported (14b 7→3, 7b 5→1) — only these batch numbers are authoritative.
+**Capability floor for repair (batch-verified, $0 local), clean open-vs-repair A/B:**
+
+| model | open-loop | + repair | repair lift |
+|---|---|---|---|
+| qwen-7b | 1/25 = 4.0% | 1/25 = 4.0% | none (model-bound) |
+| qwen-14b | 2/25 = 8.0% | 3/25 = 12.0% | +1 resolve (sklearn-13779) |
+| qwen-32b | 2/25 = 8.0% | (impractical on 16GB GPU) | — |
+
+The repair loop is **model-bound on the 7b** (no lift) but **lifts the 14b** (8%->12%), and hosted
+deepseek ~doubles (7.7->15.3%, ADR-149). So the harness repair lift reproduces at $0 **once a local
+model clears a capability floor (~14B)** — the loop needs the model to occasionally produce a
+correct-ish patch to converge toward. n=25 -> wide CIs (the local deltas are +1 resolve). In-loop
+counters over-report (14b 7->3, 7b 5->1); only batch numbers are authoritative.
