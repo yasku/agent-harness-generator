@@ -23,6 +23,7 @@ const args = process.argv.slice(2);
 const argv = (f, d) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : d; };
 const onlyInstance = argv('--instance', null);
 const K = +argv('--k', 15);
+const SLICE = +argv('--slice', 45000); // per-file char budget; shrink for small-context local models (ADR-150)
 const LOCALIZE = args.includes('--localize');
 const MODEL = argv('--model', 'deepseek/deepseek-chat');
 const rel = (p) => (isAbsolute(p) ? p : join(HERE, p));
@@ -116,9 +117,14 @@ for (const inst of manifest) {
     if (LOCALIZE) { const lz = await localize(inst.problem_statement, work, all, buildContext, K); selected = lz.selected; totalCost += lz.cost; row.localizeCost = lz.cost; }
     else selected = selectFiles(inst.problem_statement, work, all, buildContext, K);
     row.candidateFiles = all.length; row.selected = selected;
-    const seen = selected.map((f) => `# ===== ${f} =====\n${readFileSync(join(work, f), 'utf8').slice(0, 45000)}`).join('\n\n');
-    const prompt = `Fix the bug described below by editing the selected real source files. For EACH change emit a block EXACTLY:\nFILE: <one selected path>\n<<<SEARCH\n<exact lines copied verbatim from that file>\n=======\n<replacement lines>\n>>>REPLACE\nThe SEARCH text must match the file character-for-character (incl. indentation). Emit multiple blocks if needed. No prose outside blocks.\n--- problem statement ---\n${inst.problem_statement.slice(0, 6000)}\n--- selected source files ---\n${seen}\n`;
-    const res = await fetch(CHAT_URL, { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: prompt }], max_tokens: 4096, temperature: 0 }) });
+    const seen = selected.map((f) => `# ===== ${f} =====\n${readFileSync(join(work, f), 'utf8').slice(0, SLICE)}`).join('\n\n');
+    // ADR-150: a SYSTEM message with a concrete format example. Weak local models (qwen-7b)
+    // ignore an inline format spec and emit a prose code-summary instead of edit blocks (0/25
+    // applied). A system role + worked example lifts format adherence; deepseek already complies
+    // so this is additive (no change to the hosted baseline's output shape).
+    const sys = 'You are a non-conversational code-patching tool. Output ONLY search/replace edit blocks. NEVER write prose, explanations, summaries, or markdown fences. Each edit is EXACTLY:\nFILE: path/to/file.py\n<<<SEARCH\n<lines copied verbatim from the file, incl. indentation>\n=======\n<replacement lines>\n>>>REPLACE\nExample of a valid response:\nFILE: pkg/util.py\n<<<SEARCH\ndef add(a, b):\n    return a - b\n=======\ndef add(a, b):\n    return a + b\n>>>REPLACE';
+    const prompt = `Fix the bug described below by editing the selected real source files. Emit one or more edit blocks in the exact format from the system message. The SEARCH text must match the file character-for-character (incl. indentation). No prose outside blocks.\n--- problem statement ---\n${inst.problem_statement.slice(0, 6000)}\n--- selected source files ---\n${seen}\n`;
+    const res = await fetch(CHAT_URL, { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: MODEL, messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], max_tokens: 4096, temperature: 0 }) });
     const j = await res.json();
     totalTok += j.usage?.total_tokens ?? 0; totalCost += j.usage?.cost ?? 0; row.cost_usd = j.usage?.cost ?? 0;
     const raw = j.choices?.[0]?.message?.content ?? '';
