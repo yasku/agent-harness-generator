@@ -281,3 +281,21 @@ deepseek ~doubles (7.7->15.3%, ADR-149). So the harness repair lift reproduces a
 model clears a capability floor (~14B)** — the loop needs the model to occasionally produce a
 correct-ish patch to converge toward. n=25 -> wide CIs (the local deltas are +1 resolve). In-loop
 counters over-report (14b 7->3, 7b 5->1); only batch numbers are authoritative.
+
+## 12. OpenRouter fusion/router models — quick Darwin test (2026-06-19)
+
+OpenRouter exposes meta-routers that pick an underlying model per request (dynamic pass-through
+pricing). Tested two via Darwin's open-loop solver on the **hardest 10-instance** subset (django/
+sympy/matplotlib/astropy/scikit — where the deepseek-V3 baseline resolves ~1/10), official batch eval:
+
+| router | routes to | resolved | applied | cost (10) | $/resolve |
+|---|---|---|---|---|---|
+| **`openrouter/pareto-code`** | deepseek-v4-pro | **2/10** | 3 | **$0.42** | **$0.21** |
+| `openrouter/fusion` | claude-opus-4.8 | 3/10 | 4 | $19.72 | $6.57 |
+
+**Finding:** both routers beat the V3 baseline on this hard subset (newer/stronger underlying models),
+but **`pareto-code` (→ deepseek-v4-pro) is 31× more cost-efficient per resolve** than `fusion` (→
+opus-4.8): $0.21 vs $6.57. For Darwin-as-cost-optimizer, `pareto-code` is the standout — a code-routed
+endpoint landing on a strong *new* deepseek at ~$0.04/instance. `fusion`'s Opus routing resolves +1 on
+10 but at ~$2/instance — a poor trade unless absolute capability is the only axis. n=10 hard subset →
+directional, not a resolve-rate claim; the cost ratio is the robust signal. Routers tested for ADR-145.
