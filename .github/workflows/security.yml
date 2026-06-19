@@ -39,12 +39,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: EmbarkStudios/cargo-deny-action@v1
+      - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           # The action implicitly appends the `command` (default: check) to
           # `arguments`, so passing `--workspace check` here was producing
           # `cargo deny ... --workspace check check` and a CLI parse error.
           arguments: --workspace
+          # v2 ships a newer cargo-deny that skips unparseable advisory-db files
+          # (e.g. the malformed upstream RUSTSEC-2026-0124.md) instead of hard-failing
+          # to load the whole DB. Job is continue-on-error anyway (non-blocking).
 
   npm-audit:
     runs-on: ubuntu-latest
